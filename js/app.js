@@ -407,6 +407,7 @@ async function loadActionSheet(type, input) {
     timings[type].values={};
     selectedFrames[type]=0;
     $(type+'SheetGeometry').hidden=false;
+    input.closest('details').open=true;
     if (state.selected===type) selectMode(type);
     notice('별도 시트를 불러왔습니다. 프레임 크기와 발 기준점을 확인한 뒤 설정을 적용하세요.');
   } catch (error) {
