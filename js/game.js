@@ -121,7 +121,7 @@ export class Playground {
     const data=this.frameData;
     const action=data.animations[this.animationType];
     const frame=action?.image ? action : data;
-    const flipped=this.facing!==data.sourceFacing;
+    const flipped=this.facing!==(frame.sourceFacing ?? data.sourceFacing);
     const offsetX=(frame.width/2-(frame.anchorX ?? frame.width/2))*this.player.scaleX;
     const offsetY=((data.anchorY ?? data.height)-data.height/2+
       frame.height/2-(frame.anchorY ?? frame.height))*this.player.scaleY;
