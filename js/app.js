@@ -1,6 +1,10 @@
 import { Playground } from './game.js?v=action-sheets-2';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
+import { monsterPng } from './demo-monster.js';
+
+const demoRanges = {idle:[0,8],special:[8,6],walk:[16,5],attack:[24,8]};
+let imageLoad = 0;
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_DIMENSION = 2048;
@@ -8,7 +12,7 @@ const animationTypes = ['idle', 'walk', 'special', 'attack'];
 const optionalTypes = ['special', 'attack'];
 const ids = ['frameWidth', 'frameHeight', 'anchorX', 'anchorY', 'specialDelay', 'specialRepeat',
   ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps', 'Width', 'Height', 'AnchorX', 'AnchorY'].map(field => type + field))];
-const state = { image: null, fileName: 'DEMO / Penguin', selected: 'idle', game: null, timeline: null };
+const state = { image: null, fileName: 'DEMO / Monster', selected: 'idle', game: null, timeline: null };
 const actionSheets = new Map();
 const timings = Object.fromEntries(animationTypes.map(type => [type, { enabled: false, values: {} }]));
 const selectedFrames = Object.fromEntries(animationTypes.map(type => [type, 0]));
@@ -123,37 +127,6 @@ let previewRequest = null;
 function notice(message, error=false) {
   $('notice').textContent = message;
   $('notice').classList.toggle('error', error);
-}
-function createDemo() {
-  const canvas=document.createElement('canvas');
-  canvas.width=32*6; canvas.height=32*2;
-  const g=canvas.getContext('2d');
-  // Asymmetric right-facing side-view penguin to make horizontal flip unmistakable.
-  for(let i=0;i<12;i++) {
-    const x=(i%6)*32,y=Math.floor(i/6)*32;
-    const step=i>=6?Math.sin((i-6)/6*Math.PI*2):0;
-    const bob=i>=6?Math.round(Math.abs(step)*2):(i%4===2?1:0);
-    g.fillStyle='#142b39';
-    g.fillRect(x+9,y+7-bob,17,19);
-    g.fillRect(x+7,y+12-bob,20,12);
-    // White front-facing belly (right side of the sprite).
-    g.fillStyle='#e2edf0';
-    g.fillRect(x+19,y+15-bob,7,9);
-    g.fillRect(x+22,y+12-bob,4,4);
-    // Only one eye, near the right edge.
-    g.fillStyle='#fff6ec';g.fillRect(x+21,y+9-bob,3,3);
-    g.fillStyle='#142b39';g.fillRect(x+23,y+10-bob,1,1);
-    // Pointed orange beak extending to the right.
-    g.fillStyle='#f5a24f';g.fillRect(x+26,y+14-bob,5,3);
-    g.fillRect(x+29,y+15-bob,3,1);
-    // Scarf and trailing tail on left to make mirrored state obvious.
-    g.fillStyle='#b8e66f';g.fillRect(x+10,y+14-bob,12,2);g.fillRect(x+5,y+16-bob,5,3);
-    g.fillStyle='#203b4a';g.fillRect(x+7,y+18-bob,3,6);
-    g.fillStyle='#eca35f';
-    g.fillRect(x+10+(step>0?2:0),y+26,7,3);
-    g.fillRect(x+20+(step<0?-2:0),y+26,6,3);
-  }
-  return canvas;
 }
 // Prefer a plausible sprite-grid layout instead of blindly selecting the smallest tile size.
 // A 384x240 image should resolve to 48x48 (8 columns x 5 rows), not 16x16.
@@ -332,13 +305,6 @@ function resetOptionalAnimations(total) {
   $('specialRepeat').value='60';
 }
 
-function resetDefaults(demo=false) {
-  $('frameWidth').value='32';$('frameHeight').value='32';
-  $('idleStart').value='0';$('idleCount').value='4';$('idleFps').value='4';
-  $('walkStart').value=demo?'6':'0';$('walkCount').value=demo?'6':'4';$('walkFps').value='8';
-  $('sourceFacing').value='right';
-  resetPreviewClock();syncPreviewInfo();
-}
 function apply() {
   try {
     const data=computeLayout();
@@ -348,13 +314,39 @@ function apply() {
     drawSheet();
   } catch(e) { notice(e.message,true); }
 }
-function useDemo() {
+async function useDemo() {
+  const load = ++imageLoad;
+  const image = new Image();
+  image.src = monsterPng;
+  try {
+    await image.decode();
+  } catch {
+    if (load === imageLoad) notice('데모 PNG를 불러오지 못했습니다.',true);
+    return;
+  }
+  if (load !== imageLoad) return;
   for (const type of animationTypes) clearActionSheet(type);
   $('anchorX').value='';
   $('anchorY').value='';
-  state.image=createDemo();state.fileName='DEMO / Penguin';
+  state.image=image;state.fileName='DEMO / Monster';
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
-  resetTimingSettings();resetOptionalAnimations(12);resetDefaults(true);selectMode('idle');resetSheetViewport();apply();
+  resetTimingSettings();
+  resetOptionalAnimations(48);
+  $('frameWidth').value='48';
+  $('frameHeight').value='48';
+  $('sourceFacing').value='right';
+  $('idleFps').value='4';
+  $('walkFps').value='8';
+  for (const [type,[start,count]] of Object.entries(demoRanges)) {
+    $(type+'Start').value=String(start);
+    $(type+'Count').value=String(count);
+  }
+  for (const type of optionalTypes) {
+    $(type+'Enabled').checked=true;
+    $(type+'Options').hidden=false;
+  }
+  selectMode('idle');
+  apply();
 }
 async function readPng(file) {
   if(file.type!=='image/png'&&!/\.png$/i.test(file.name)) throw new Error('PNG 파일만 지원합니다.');
@@ -418,8 +410,10 @@ async function loadActionSheet(type, input) {
 }
 async function handleFile(file) {
   if (!file) return;
+  const load = ++imageLoad;
   try {
     const img=await readPng(file);
+    if (load !== imageLoad) return;
     for (const type of animationTypes) clearActionSheet(type);
     $('anchorX').value='';
     $('anchorY').value='';
@@ -434,7 +428,7 @@ async function handleFile(file) {
     resetTimingSettings();resetOptionalAnimations(total);selectMode('idle');
     resetSheetViewport();
     notice('시트를 불러왔습니다. '+(dims?'프레임 크기 '+dims+'×'+dims+'px를 임시 설정했습니다. ':'')+'원본 방향과 애니메이션 범위를 확인하세요.');
-  } catch(e) { notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
+  } catch(e) { if (load === imageLoad) notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
 }
 function init() {
   try {
