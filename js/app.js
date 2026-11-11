@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=plaza-13';
+import { Playground } from './game.js?v=plaza-14';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
@@ -634,7 +634,27 @@ async function selectPlazaCharacter(choice, demo) {
   return {name:$('activeCharacter').textContent,data:state.game.frameData};
 }
 
+function setupStageExpansion() {
+  const frame=$('stageFrame');
+  const button=$('stageExpand');
+  const setExpanded=expanded=>{
+    frame.classList.toggle('stage-expanded',expanded);
+    document.body.classList.toggle('stage-expansion-active',expanded);
+    button.setAttribute('aria-expanded',String(expanded));
+    button.textContent=expanded?'확대 화면 닫기 (Esc)':'광장 크게 보기';
+    button.focus({preventScroll:true});
+  };
+  button.addEventListener('click',()=>setExpanded(!frame.classList.contains('stage-expanded')));
+  document.addEventListener('keydown',event=>{
+    if (event.key==='Escape' && frame.classList.contains('stage-expanded')) {
+      event.preventDefault();
+      setExpanded(false);
+    }
+  });
+}
+
 function init() {
+  setupStageExpansion();
   try {
     state.game=new Playground($('gameMount'),(mode,x,y,facing,flipped)=>{
       $('movementStatus').textContent=mode;
