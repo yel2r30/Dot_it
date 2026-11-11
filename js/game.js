@@ -68,8 +68,13 @@ export class Playground {
     }
     for(const [kind, info] of Object.entries(animations)) {
       const key='dotit-'+kind;
-      const frames=Array.from({length:info.count},(_,i)=>({key:this.frameKeys[info.start+i]}));
-      scene.anims.create({key,frames,frameRate:info.fps,repeat:-1});
+      // Phaser adds per-frame durations to the animation's base duration.
+      // A 1 ms total duration makes user-entered frame times effectively exact.
+      const frames=Array.from({length:info.count},(_,i)=>info.perFrame
+        ? {key:this.frameKeys[info.start+i],duration:info.durations[i]}
+        : {key:this.frameKeys[info.start+i]});
+      const timeConfig=info.perFrame?{duration:1}:{frameRate:info.fps};
+      scene.anims.create({key,frames,...timeConfig,repeat:-1});
       this.animKeys.push(key);
     }
     const savedX=this.x ?? GAME_WIDTH/2, savedY=this.y ?? GAME_HEIGHT/2;
