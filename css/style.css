@@ -112,3 +112,5 @@
 .frame-timing-panel.is-inactive{opacity:.65}
 .frame-timing-panel.is-inactive .frame-timing-editor{display:none}
 @media(max-width:620px){.mode-tab{font-size:10px}.mode-tab span{font-size:8px}}
+
+.action-sheet-file{max-width:100%;width:15rem;margin-inline-start:.5rem;vertical-align:middle}
