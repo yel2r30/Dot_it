@@ -214,19 +214,34 @@ export class Playground {
     if (!this.plazaDemo || !this.player) return null;
     return {x:Math.round(this.x),y:Math.round(this.y),action:this.animationType,flip:this.facing==='left'};
   }
+  setPlazaAppearance(id, data) {
+    const remote=this.plazaPlayers?.get(id);
+    if (!remote) return;
+    const prefix='plaza-user-'+id+'-';
+    const frames=[],animations=[];
+    this.createAnimationAssets(data,prefix,frames,animations);
+    remote.appearance={data,prefix,frames,animations};
+    remote.action=null;
+  }
   showPlazaPlayer(id, pose) {
     this.plazaPlayers ??= new Map();
     let remote=this.plazaPlayers.get(id);
     if (!pose) {
       remote?.sprite.destroy();
       remote?.label.destroy();
+      if (remote?.appearance) {
+        for (const key of remote.appearance.animations) this.scene.anims.remove(key);
+        for (const key of remote.appearance.frames) this.scene.textures.remove(key);
+      }
       this.plazaPlayers.delete(id);
       return;
     }
     if (!this.plazaDemo) return;
-    const key='plaza-demo-'+pose.action;
-    const info=this.plazaDemo.data.animations[pose.action];
-    if (!info) return;
+    const appearance=remote?.appearance;
+    const data=appearance?.data ?? this.plazaDemo.data;
+    const action=data.animations[pose.action] ? pose.action : 'idle';
+    const key=(appearance?.prefix ?? 'plaza-demo-')+action;
+    const info=data.animations[action];
     const x=Math.max(28,Math.min(GAME_WIDTH-28,pose.x));
     const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
     const nickname=typeof pose.nickname==='string'
@@ -238,9 +253,11 @@ export class Playground {
       remote={sprite,label,targetX:x,targetY:y,vx:0,vy:0,age:0};
       this.plazaPlayers.set(id,remote);
     }
-    if (remote.action!==pose.action || remote.session!==pose.session) {
+    remote.nameOffset=appearance ? Math.max(12,info.bottom+4) : PLAZA_NAME_OFFSET;
+    if (remote.action!==action || remote.session!==pose.session) {
+      remote.sprite.setScale(appearance ? data.worldScale : 2);
       remote.sprite.play(key);
-      remote.action=pose.action;
+      remote.action=action;
       remote.session=pose.session;
     }
     remote.sprite.setFlipX(pose.flip);
@@ -249,7 +266,7 @@ export class Playground {
     const changedSession=remote.sampleSession!==pose.session;
     if (changedSession) {
       remote.sprite.setPosition(x,y);
-      remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
+      remote.label.setPosition(x,y+remote.nameOffset);
     }
     if (changedSession || receivedAt>= (remote.sampleAt ?? 0)) {
       const elapsed=Math.max(50,receivedAt-(remote.sampleAt ?? receivedAt));
@@ -275,7 +292,7 @@ export class Playground {
       const x=Math.abs(dx)<.1 ? targetX : remote.sprite.x+dx*blend;
       const y=Math.abs(dy)<.1 ? targetY : remote.sprite.y+dy*blend;
       remote.sprite.setPosition(x,y);
-      remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
+      remote.label.setPosition(x,y+remote.nameOffset);
     }
   }
   roomPose() {
