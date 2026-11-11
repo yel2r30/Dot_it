@@ -79,9 +79,31 @@ export class Playground {
     // The sheet may be originally drawn facing left OR right.
     // Reset to the artist's original orientation on every apply.
     this.facing=sourceFacing;
-    this.player.setFlipX(false);
-    this.x=savedX; this.y=savedY; this.playAnimation('idle');
-    this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y),this.facing);
+    this.x=savedX; this.y=savedY;
+    this.playAnimation('idle');
+    this.setFacing(sourceFacing);
+    this.notifyState();
+  }
+  // Change the original sprite orientation without re-uploading or re-applying animations.
+  setSourceFacing(direction) {
+    if (!['left','right'].includes(direction)) return;
+    if (this.frameData) this.frameData.sourceFacing = direction;
+    this.setFacing(direction);
+    this.notifyState();
+  }
+  setFacing(direction) {
+    if (!['left','right'].includes(direction)) return;
+    this.facing = direction;
+    if (this.player && this.frameData) {
+      this.player.setFlipX(direction !== this.frameData.sourceFacing);
+    }
+  }
+  notifyState() {
+    if (!this.player) return;
+    this.onUpdate?.(
+      this.state, Math.round(this.x), Math.round(this.y),
+      this.facing, this.player.flipX
+    );
   }
   cloneCanvas(source) {
     const c=document.createElement('canvas');c.width=source.width;c.height=source.height;
@@ -107,16 +129,16 @@ export class Playground {
       const speed=140*Math.min(dt,50)/1000;
       this.x=Math.max(28,Math.min(GAME_WIDTH-28,this.x+dx/length*speed));
       this.y=Math.max(28,Math.min(GAME_HEIGHT-62,this.y+dy/length*speed));
-      if(dx) {
-        this.facing=dx<0?'left':'right';
-        this.player.setFlipX(this.facing!==this.frameData.sourceFacing);
-      }
+      if(dx) this.setFacing(dx<0?'left':'right');
       this.player.setPosition(this.x,this.y);
       this.playAnimation('walk');
     } else this.playAnimation('idle');
-    if(this.lastState!==this.state || this.lastX!==Math.round(this.x) || this.lastY!==Math.round(this.y) || this.lastFacing!==this.facing) {
-      this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y),this.facing);
-      this.lastState=this.state;this.lastX=Math.round(this.x);this.lastY=Math.round(this.y);this.lastFacing=this.facing;
+    // Reassert flip state after animation changes to guarantee orientation.
+    this.player.setFlipX(this.facing !== this.frameData.sourceFacing);
+    if(this.lastState!==this.state || this.lastX!==Math.round(this.x) || this.lastY!==Math.round(this.y) || this.lastFacing!==this.facing || this.lastFlip!==this.player.flipX) {
+      this.notifyState();
+      this.lastState=this.state;this.lastX=Math.round(this.x);this.lastY=Math.round(this.y);
+      this.lastFacing=this.facing;this.lastFlip=this.player.flipX;
     }
   }
 }
