@@ -43,7 +43,17 @@
           <div class="sheet-scroll"><canvas id="sheetCanvas" width="192" height="64" aria-label="스프라이트 시트 격자 미리보기"></canvas></div>
         </div>
 
-        <div class="section-title"><span>03</span> 애니메이션 지정</div>
+        <div class="section-title"><span>03</span> 캐릭터 방향</div>
+        <div class="direction-settings">
+          <label for="sourceFacing">원본 스프라이트가 보는 방향</label>
+          <select id="sourceFacing" aria-describedby="directionHelp">
+            <option value="right">오른쪽 (→) 기본</option>
+            <option value="left">왼쪽 (←) 기본</option>
+          </select>
+          <p id="directionHelp">반대쪽으로 이동하면 좌우가 자동 반전됩니다. 멈추거나 위아래로 이동할 때는 마지막으로 본 방향을 유지합니다.</p>
+        </div>
+
+        <div class="section-title"><span>04</span> 애니메이션 지정</div>
         <div class="mode-tabs" role="group" aria-label="편집할 애니메이션">
           <button id="idleTab" class="mode-tab active" type="button" aria-pressed="true">IDLE <span>대기</span></button>
           <button id="walkTab" class="mode-tab" type="button" aria-pressed="false">WALK <span>걷기</span></button>
@@ -66,7 +76,12 @@
         </div>
         <div class="anim-preview-area">
           <canvas id="animCanvas" width="160" height="160" aria-label="선택한 애니메이션 미리보기"></canvas>
-          <div class="anim-preview-copy"><span class="eyebrow">LIVE PREVIEW</span><strong id="previewTitle">IDLE</strong><span id="previewInfo">4 frames · 4 FPS</span><small>설정을 바꾸면 여기에서 바로 확인할 수 있어요.</small></div>
+          <div class="anim-preview-copy"><span class="eyebrow">LIVE PREVIEW</span><strong id="previewTitle">IDLE</strong><span id="previewInfo">4 frames · 4 FPS</span><small>설정을 바꾸면 여기에서 바로 확인할 수 있어요.</small>
+            <div class="preview-directions" role="group" aria-label="미리보기 방향">
+              <button id="previewLeft" type="button" aria-pressed="false">← 왼쪽</button>
+              <button id="previewRight" class="active" type="button" aria-pressed="true">오른쪽 →</button>
+            </div>
+          </div>
         </div>
         <button id="applyButton" class="primary-button" type="button">↗ 캐릭터에 설정 적용하기</button>
         <p class="inline-notice" id="notice" role="status" aria-live="polite">데모 캐릭터가 준비되었습니다.</p>
@@ -83,6 +98,7 @@
           <div class="player-card"><span class="avatar-mark">◆</span><div><small>ACTIVE CHARACTER</small><strong id="activeCharacter">DEMO / Penguin</strong></div></div>
           <div class="status-card"><small>CURRENT STATE</small><strong id="movementStatus">IDLE</strong></div>
           <div class="status-card"><small>POSITION</small><strong id="positionStatus">480, 280</strong></div>
+          <div class="status-card"><small>FACING</small><strong id="facingStatus">RIGHT →</strong></div>
         </div>
         <div class="control-panel">
           <div><p class="eyebrow">CONTROLS</p><strong>캐릭터 이동</strong></div>
