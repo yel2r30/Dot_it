@@ -14,7 +14,8 @@ const animationTypes = ['idle', 'walk', 'special', 'attack', 'damage', 'death'];
 const optionalTypes = ['special', 'attack', 'damage', 'death'];
 const ids = ['frameWidth', 'frameHeight', 'anchorX', 'anchorY', 'specialDelay', 'specialRepeat',
   ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps', 'Width', 'Height', 'AnchorX', 'AnchorY'].map(field => type + field))];
-const state = { image: null, fileName: 'DEMO / df', selected: 'idle', game: null, timeline: null };
+const demoName = 'DEMO / df';
+const state = { image: null, demo: true, fileName: demoName, selected: 'idle', game: null, timeline: null };
 const actionSheets = new Map();
 const timings = Object.fromEntries(animationTypes.map(type => [type, { enabled: false, values: {} }]));
 const selectedFrames = Object.fromEntries(animationTypes.map(type => [type, 0]));
@@ -246,6 +247,9 @@ function syncPreviewInfo() {
 }
 function selectMode(mode) {
   state.selected=mode;
+  const exportButton=$('exportCharacterButton');
+  exportButton.disabled=state.demo;
+  exportButton.title=state.demo ? '기본 데모는 내보낼 수 없습니다.' : '';
   for(const type of animationTypes){
     $(type+'Tab').classList.toggle('active',type===mode);
     $(type+'Tab').setAttribute('aria-pressed',String(type===mode));
@@ -327,7 +331,7 @@ async function captureCharacter() {
   computeLayout();
   const fields=Object.fromEntries(savedFields.map(id=>[id,$(id).value]));
   const checks=Object.fromEntries(savedChecks.map(id=>[id,$(id).checked]));
-  const snapshot=structuredClone({version:1,name:state.fileName,fields,checks,timings,selectedFrames});
+  const snapshot=structuredClone({version:1,name:state.fileName,demo:state.demo,fields,checks,timings,selectedFrames});
   const [image,sheets]=await Promise.all([
     encodeSheet(state.image),
     Promise.all([...actionSheets].map(async ([type,{image,...settings}])=>[
@@ -396,6 +400,7 @@ function readCharacterFile(file) {
 }
 
 async function exportCharacterFile() {
+  if (state.demo) throw new Error('기본 데모는 내보낼 수 없습니다.');
   const saved=await captureCharacter();
   const [image,sheets]=await Promise.all([
     blobToDataUrl(saved.image),
@@ -443,6 +448,7 @@ async function restoreCharacter(saved, load, message='저장한 캐릭터를 불
   }
   state.image=image;
   state.fileName=saved.name;
+  state.demo=saved.demo ?? (saved.name===demoName);
   $('spriteFile').value='';
   $('fileName').textContent='현재: '+saved.name;
   selectMode('idle');
@@ -495,7 +501,7 @@ async function useDemo() {
   for (const type of animationTypes) clearActionSheet(type);
   $('anchorX').value='';
   $('anchorY').value='';
-  state.image=image;state.fileName='DEMO / df';
+  state.image=image;state.demo=true;state.fileName=demoName;
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
   resetTimingSettings();
   resetOptionalAnimations(36);
@@ -588,6 +594,7 @@ async function handleFile(file) {
     $('anchorX').value='';
     $('anchorY').value='';
     state.image=img;
+    state.demo=false;
     state.fileName=file.name.replace(/\.png$/i,'');
     $('fileName').textContent='현재: '+file.name;
     const dims=suggestFrameSize(img);
@@ -646,7 +653,7 @@ function init() {
     button.disabled=true;
     try { await exportCharacterFile(); }
     catch (error) { notice('내보내기 실패: '+error.message,true); }
-    finally { button.disabled=false; }
+    finally { button.disabled=state.demo; }
   });
   const characterFile=$('characterFile');
   $('importCharacterButton').addEventListener('click',()=>characterFile.click());
