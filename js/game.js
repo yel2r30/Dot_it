@@ -156,12 +156,16 @@ export class Playground {
     ]));
     return {image,width:size,height:size,columns:image.width/size,animations,sourceFacing:'right',specialLoop:true};
   }
-  enterPublicPlaza(image, ranges) {
+  enterPublicPlaza(image, ranges, character) {
     this.checkRoomAvailability();
     const demo=this.roomDemoData(image,ranges);
     const frames=[], animations=[];
     this.createAnimationAssets(demo,'plaza-demo-',frames,animations);
     this.plazaDemo={data:demo,frames,animations};
+    if (character && character!==this.frameData) {
+      this.plazaPreviousData=this.frameData;
+      this.install(character);
+    }
   }
   leavePublicPlaza() {
     this.plazaName?.destroy();
@@ -171,6 +175,11 @@ export class Playground {
     for (const key of this.plazaDemo.animations) this.scene.anims.remove(key);
     for (const key of this.plazaDemo.frames) this.scene.textures.remove(key);
     this.plazaDemo=null;
+    if (this.plazaPreviousData) {
+      const previous=this.plazaPreviousData;
+      this.plazaPreviousData=null;
+      this.install(previous);
+    }
   }
   checkRoomAvailability() {
     if (this.roomPreviousData || this.plazaDemo) throw new Error('현재 방에서 나온 뒤 다시 입장해 주세요.');
