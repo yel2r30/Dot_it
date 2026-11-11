@@ -5,6 +5,8 @@ const PLAZA_NAME_OFFSET = 36;
 const PLAZA_PREDICTION_MS = 260;
 const PLAZA_POSITION_SMOOTH_MS = 75;
 const PLAYER_SPEED = 140;
+const PLAZA_MAX_HP = 3;
+const PLAZA_ATTACK_COOLDOWN = 450;
 export class Playground {
   constructor(mount, onUpdate) {
     if (!window.Phaser) throw new Error('게임 엔진을 불러오지 못했습니다. 인터넷 연결 후 새로고침해 주세요.');
@@ -162,12 +164,14 @@ export class Playground {
     const frames=[], animations=[];
     this.createAnimationAssets(demo,'plaza-demo-',frames,animations);
     this.plazaDemo={data:demo,frames,animations};
+    this.plazaCombat={hp:PLAZA_MAX_HP,sequence:0,nextAttackAt:0,flashMs:0};
     if (character && character!==this.frameData) {
       this.plazaPreviousData=this.frameData;
       this.install(character);
     }
   }
   leavePublicPlaza() {
+    this.plazaCombat=null;
     this.plazaName?.destroy();
     this.plazaName=null;
     for (const key of this.plazaPlayers?.keys() ?? []) this.showPlazaPlayer(key,null);
@@ -175,11 +179,9 @@ export class Playground {
     for (const key of this.plazaDemo.animations) this.scene.anims.remove(key);
     for (const key of this.plazaDemo.frames) this.scene.textures.remove(key);
     this.plazaDemo=null;
-    if (this.plazaPreviousData) {
-      const previous=this.plazaPreviousData;
-      this.plazaPreviousData=null;
-      this.install(previous);
-    }
+    const previous=this.plazaPreviousData ?? this.frameData;
+    this.plazaPreviousData=null;
+    this.install(previous);
   }
   checkRoomAvailability() {
     if (this.roomPreviousData || this.plazaDemo) throw new Error('현재 방에서 나온 뒤 다시 입장해 주세요.');
@@ -206,8 +208,63 @@ export class Playground {
   }
   setPlazaNickname(nickname) {
     this.plazaName?.destroy();
-    this.plazaName=this.createPlazaName(this.x,this.y,nickname);
+    this.plazaNickname=nickname;
+    this.plazaName=this.createPlazaName(this.x,this.y,this.plazaLabel(nickname,this.plazaCombat.hp));
     this.plazaName.setPosition(this.x,this.y+this.localPlazaNameOffset());
+  }
+  plazaLabel(nickname,hp) {
+    return Number.isInteger(hp) && hp>=0 && hp<=PLAZA_MAX_HP
+      ? nickname+'  '+'♥'.repeat(hp)+'♡'.repeat(PLAZA_MAX_HP-hp) : nickname;
+  }
+  updatePlazaHealth() {
+    this.plazaName?.setText(this.plazaLabel(this.plazaNickname,this.plazaCombat.hp));
+    this.notifyState();
+  }
+  startPlazaAttack() {
+    const combat=this.plazaCombat;
+    const now=Date.now();
+    if (!combat || this.dead || now<combat.nextAttackAt || this.oneShot==='attack') return;
+    combat.nextAttackAt=now+PLAZA_ATTACK_COOLDOWN;
+    this.startOneShot('attack');
+    combat.strike={id:++combat.sequence,x:Math.round(this.x),y:Math.round(this.y),flip:this.facing==='left'};
+  }
+  takePlazaStrike(strike) {
+    const combat=this.plazaCombat;
+    if (!combat || this.dead || combat.hp<=0) return false;
+    const forward=(this.x-strike.x)*(strike.flip?-1:1);
+    const vertical=Math.abs(this.y-strike.y);
+    if (forward<0 || forward>84 || vertical>38) return false;
+    combat.hp--;
+    combat.flashMs=180;
+    this.player.setTint(0xff7777);
+    this.resetInactivity();
+    if (combat.hp===0) {
+      if (!this.startOneShot('death')) {
+        this.dead=true;
+        this.oneShot=null;
+        this.player.anims.stop();
+        this.player.setAlpha(.45);
+        this.state='DEATH';
+        this.animationType='death';
+      }
+    } else {
+      this.startOneShot('damage');
+    }
+    this.updatePlazaHealth();
+    return true;
+  }
+  revivePlazaPlayer() {
+    this.dead=false;
+    this.oneShot=null;
+    this.player.anims.stop();
+    this.player.clearTint();
+    this.player.setAlpha(1);
+    this.plazaCombat.hp=PLAZA_MAX_HP;
+    this.plazaCombat.nextAttackAt=0;
+    this.plazaCombat.flashMs=0;
+    this.resetInactivity();
+    this.playAnimation('idle');
+    this.updatePlazaHealth();
   }
   localPlazaNameOffset() {
     return this.frameData.image && this.frameData.height===48 && this.frameData.width===48
@@ -221,7 +278,7 @@ export class Playground {
   }
   plazaPose() {
     if (!this.plazaDemo || !this.player) return null;
-    return {x:Math.round(this.x),y:Math.round(this.y),action:this.animationType,flip:this.facing==='left'};
+    return {x:Math.round(this.x),y:Math.round(this.y),action:this.animationType,flip:this.facing==='left',hp:this.plazaCombat.hp};
   }
   setPlazaAppearance(id, data) {
     const remote=this.plazaPlayers?.get(id);
@@ -270,7 +327,9 @@ export class Playground {
       remote.session=pose.session;
     }
     remote.sprite.setFlipX(pose.flip);
-    if (remote.label.text!==nickname) remote.label.setText(nickname);
+    const label=this.plazaLabel(nickname,pose.hp);
+    if (remote.label.text!==label) remote.label.setText(label);
+    remote.sprite.setAlpha(pose.hp===0 && action!=='death' ? .45 : 1);
     const receivedAt=Number.isFinite(pose.at) ? pose.at : Date.now();
     const changedSession=remote.sampleSession!==pose.session;
     if (changedSession) {
@@ -346,7 +405,7 @@ export class Playground {
   startOneShot(type) {
     if(!this.frameData?.animations?.[type]||!this.player) return false;
     if (this.dead || this.oneShot===type) return false;
-    if (type==='attack' && this.oneShot==='damage') return false;
+    if (type==='attack' && this.oneShot==='damage' && !this.plazaCombat) return false;
     if (type==='death') this.dead=true;
     this.oneShot=type;
     // Inputs trigger one animation without queuing repeats.
@@ -366,16 +425,23 @@ export class Playground {
   update(dt) {
     this.updatePlazaPlayers(dt);
     if (!this.player || !this.cursors || !this.frameData) return;
+    if (this.plazaCombat?.flashMs>0) {
+      this.plazaCombat.flashMs=Math.max(0,this.plazaCombat.flashMs-dt);
+      if (this.plazaCombat.flashMs===0) this.player.clearTint();
+    }
     const editing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
     const pressed = Phaser.Input.Keyboard.JustDown;
     const attackPressed=pressed(this.keys.J)&&!editing;
-    const damagePressed=pressed(this.keys.K)&&!editing&&Boolean(this.frameData.animations.damage);
-    const deathPressed=pressed(this.keys.L)&&!editing&&Boolean(this.frameData.animations.death);
+    const damagePressed=pressed(this.keys.K)&&!editing&&!this.plazaCombat&&Boolean(this.frameData.animations.damage);
+    const deathPressed=pressed(this.keys.L)&&!editing&&!this.plazaCombat&&Boolean(this.frameData.animations.death);
     const revivePressed=pressed(this.keys.R)&&!editing;
     if (this.dead) {
-      if (this.oneShot || !revivePressed) return;
-      this.dead=false;
-      this.resetInactivity();
+      if (!revivePressed || (!this.plazaCombat && this.oneShot)) return;
+      if (this.plazaCombat) this.revivePlazaPlayer();
+      else {
+        this.dead=false;
+        this.resetInactivity();
+      }
     } else if (deathPressed) {
       this.startOneShot('death');
       return;
@@ -400,7 +466,10 @@ export class Playground {
 
     // Attack takes priority over SPECIAL, WALK and IDLE.
     if (damagePressed) this.startOneShot('damage');
-    else if (attackPressed) this.startOneShot('attack');
+    else if (attackPressed) {
+      if (this.plazaCombat) this.startPlazaAttack();
+      else this.startOneShot('attack');
+    }
     if(!this.oneShot) {
       if(!moving&&this.frameData.animations.special&&this.idleElapsedMs>=this.nextSpecialMs) {
         this.nextSpecialMs=this.idleElapsedMs+(this.frameData.specialRepeatMs??30000);
