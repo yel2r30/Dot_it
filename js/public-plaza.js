@@ -157,7 +157,7 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
         let entry=current.remotes.get(key);
         if (!entry || entry.pose.session!==pose.session) {
           if (entry) game.showPlazaPlayer(key,null);
-          entry={pose};
+          entry={pose,strikeId:pose.strike?.id??0};
           current.remotes.set(key,entry);
           if (pose.appearance) {
             const pending=entry;
@@ -167,7 +167,16 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
               game.showPlazaPlayer(key,pending.pose);
             }).catch(()=>{});
           }
-        } else entry.pose=pose;
+        } else {
+          const strike=pose.strike;
+          if (strike && Number.isInteger(strike.id) && strike.id>(entry.strikeId??0)) {
+            entry.strikeId=strike.id;
+            if (pose.hp>0 && Number.isFinite(strike.at) && strike.at>=now()-1500 && strike.at<=now()+1000 &&
+                Number.isFinite(strike.x) && Number.isFinite(strike.y) && typeof strike.flip==='boolean')
+              game.takePlazaStrike(strike);
+          }
+          entry.pose=pose;
+        }
         game.showPlazaPlayer(key,pose);
         updateCount();
       };
@@ -180,16 +189,20 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
         if (session===current && snapshot.val()===false) void stop('연결이 끊겼습니다. 다시 입장해 주세요.');
       }));
       updateCount();
-      let pending=false,last='',sentAt=0;
+      let pending=false,last='',sentAt=0,sentStrike=0;
       current.tick=setInterval(async ()=>{
         if (session!==current) return;
         for (const [key,entry] of current.remotes) if (entry.pose.at<now()-leaseMs) remove(key);
         const pose=game.plazaPose();
         const encoded=JSON.stringify(pose);
-        if (!pose || pending || (encoded===last && Date.now()-sentAt<12000)) return;
+        const strike=game.plazaCombat?.strike;
+        const newStrike=strike && strike.id>sentStrike;
+        if (!pose || pending || (!newStrike && encoded===last && Date.now()-sentAt<12000)) return;
         pending=true;
         try {
-          await db.update(current.poseRef,{...pose,at:db.serverTimestamp()});
+          await db.update(current.poseRef,{...pose,at:db.serverTimestamp(),
+            ...(newStrike?{strike:{...strike,at:db.serverTimestamp()}}:{})});
+          if (newStrike) sentStrike=strike.id;
           last=encoded;
           sentAt=Date.now();
         } catch {
