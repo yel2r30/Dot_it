@@ -1,7 +1,7 @@
 import { Playground } from './game.js?v=damage-death-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
-import { createHumanDemo } from './demo-human.js';
+import { createHumanDemo } from './demo-human.js?v=2';
 
 const demoRanges = {idle:[0,6],special:[6,6],walk:[12,6],attack:[18,6],damage:[24,4],death:[30,6]};
 let imageLoad = 0;
