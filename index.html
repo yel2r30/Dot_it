@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#10161d">
   <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
   <title>Dot_it | Pixel Character Playground</title>
-  <link rel="stylesheet" href="./css/style.css?v=dev001-frame-timing-4">
+  <link rel="stylesheet" href="./css/style.css?v=dev001-timeline-5">
 </head>
 <body>
   <div class="page-shell">
@@ -75,14 +75,45 @@
           </div>
         </div>
         <div class="frame-timing-panel">
+          <div class="timeline-title"><strong>애니메이션 타임라인</strong><span>UNITY-STYLE / DOPE SHEET</span></div>
           <label class="frame-timing-toggle">
             <input id="perFrameToggle" type="checkbox">
-            <span class="frame-timing-toggle-copy"><strong>프레임별 재생 시간 사용</strong><small>기본 FPS 대신 각 프레임을 보여줄 시간(ms)을 지정합니다.</small></span>
+            <span class="frame-timing-toggle-copy"><strong>프레임별 시간 편집</strong><small>끄면 전체 FPS 기준 · 켜면 경계(◆)를 드래그해 시간 조절</small></span>
           </label>
-          <div id="frameTimingEditor" class="frame-timing-editor" hidden>
-            <div class="frame-timing-heading"><span>프레임별 시간 · 20~3000ms</span><button type="button" id="resetFrameTimes" class="text-button">전체 FPS 기준으로 초기화</button></div>
-            <div id="frameTimingList" class="frame-timing-list" aria-label="개별 프레임 재생 시간"></div>
-            <p class="frame-timing-help">숫자가 클수록 오래 멈춰 보여요. IDLE과 WALK는 각각 따로 설정할 수 있습니다.</p>
+          <div id="frameTimingEditor" class="frame-timing-editor">
+            <div class="timeline-transport">
+              <div class="timeline-buttons">
+                <button id="timelineRestart" type="button" title="처음으로 이동" aria-label="처음으로 이동">⏮</button>
+                <button id="timelinePrev" type="button" title="이전 프레임" aria-label="이전 프레임">◀|</button>
+                <button id="timelinePlayPause" type="button" aria-label="재생 일시정지">Ⅱ</button>
+                <button id="timelineNext" type="button" title="다음 프레임" aria-label="다음 프레임">|▶</button>
+              </div>
+              <span id="timelineTimeLabel" class="timeline-time-label">0 / 1000ms</span>
+              <label class="timeline-snap-label">스냅
+                <select id="timelineSnap">
+                  <option value="10" selected>10ms</option>
+                  <option value="20">20ms</option>
+                  <option value="50">50ms</option>
+                  <option value="0">끔</option>
+                </select>
+              </label>
+            </div>
+            <p id="timelineModeHint" class="timeline-hint">전체 FPS 재생 중 · 프레임별 시간 편집을 켜면 경계를 조절할 수 있습니다.</p>
+            <div id="timelineViewport" class="timeline-viewport" aria-label="프레임 타임라인 (가로 스크롤 가능)">
+              <div id="timelineTrack" class="timeline-track">
+                <div id="timelineRuler" class="timeline-ruler" aria-label="재생 시간축"></div>
+                <div id="timelineFrames" class="timeline-frames"></div>
+                <div id="timelinePlayhead" class="timeline-playhead" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="timeline-inspector">
+              <div class="timeline-inspector-title"><strong id="timelineSelectedName">프레임 #0</strong><small id="timelineSelectedOrder">1 / 4</small></div>
+              <label for="selectedFrameTime">선택 프레임 유지 시간
+                <span class="timeline-time-field"><input id="selectedFrameTime" type="number" min="20" max="3000" step="10" value="250" disabled><span>ms</span></span>
+              </label>
+              <button type="button" id="resetFrameTimes" class="text-button">현재 FPS로 초기화</button>
+            </div>
+            <p class="frame-timing-help">프레임을 누르면 해당 위치로 이동하고, 점(◆)을 드래그하면 길이가 바뀝니다. 프레임당 20~3000ms · IDLE/WALK 별도 적용.</p>
           </div>
         </div>
         <div class="anim-preview-area">
@@ -122,6 +153,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-001 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=dev001-frame-timing-4"></script>
+  <script type="module" src="./js/app.js?v=dev001-timeline-5"></script>
 </body>
 </html>
