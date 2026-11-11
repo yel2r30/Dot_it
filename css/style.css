@@ -30,3 +30,26 @@
 #sheetCanvas{flex-shrink:0;align-self:flex-start}
 @media(max-width:1050px){.sheet-scroll{height:270px}}
 @media(max-width:620px){.sheet-scroll{height:235px}}
+
+/* Per-frame animation timing controls */
+.frame-timing-panel{margin-top:15px;background:#101923;border:1px solid var(--line);border-radius:9px;padding:12px}
+.frame-timing-toggle{display:flex;align-items:center;gap:12px;cursor:pointer}
+.frame-timing-toggle input{width:17px;height:17px;accent-color:var(--accent);flex:none}
+.frame-timing-toggle-copy{display:flex;flex-direction:column;gap:4px;line-height:1.4}
+.frame-timing-toggle-copy strong{font-size:12px;color:var(--text)}
+.frame-timing-toggle-copy small{font-size:10px;color:#9aafbd;line-height:1.6}
+.frame-timing-editor{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.frame-timing-editor[hidden]{display:none}
+.frame-timing-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.frame-timing-heading>span{font-size:11px;color:#9fb4c0}
+.frame-timing-heading .text-button{font-size:10px;text-align:right}
+.frame-timing-list{display:flex;flex-direction:column;gap:8px;max-height:275px;overflow-y:auto;overscroll-behavior:contain;padding-right:3px}
+.frame-time-row{display:flex;gap:10px;align-items:center;padding:7px 10px;background:#172430;border:1px solid #304453;border-radius:7px}
+.frame-time-thumbnail{width:40px;height:40px;image-rendering:pixelated;border-radius:4px;flex:none;background:repeating-conic-gradient(#344450 0% 25%,#26343e 0% 50%) 50%/12px 12px}
+.frame-time-title{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:#bccbd4}
+.frame-time-title small{display:block;font:10px Manrope,system-ui,sans-serif;color:#8196a5;margin-top:3px}
+.frame-time-input-label{display:flex;align-items:center;gap:5px;font-size:10px;color:#9fb2c0}
+.frame-time-input-label input{width:78px;background:#0c1720;border:1px solid #536577;color:#f0f6f8;font:12px var(--mono);border-radius:5px;padding:8px}
+.frame-time-input-label input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.frame-timing-help{margin:10px 0 0;color:#859aaa;font-size:10px;line-height:1.65}
+.preview-frame-time{font:10px var(--mono);color:var(--accent)}
