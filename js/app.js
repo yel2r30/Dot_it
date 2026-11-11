@@ -335,6 +335,8 @@ async function useDemo() {
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
   resetTimingSettings();
   resetOptionalAnimations(36);
+  $('specialLoop').checked=true;
+  $('specialRepeat').disabled=true;
   $('frameWidth').value='48';
   $('frameHeight').value='48';
   $('sourceFacing').value='right';
