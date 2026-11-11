@@ -1,5 +1,7 @@
 import { firebaseConfig } from './firebase-config.js?v=plaza-1';
 
+import { isBlockedNickname } from './nickname-filter.js?v=1';
+
 const sdk='https://www.gstatic.com/firebasejs/12.19.0/';
 const slots=8;
 const leaseMs=45000;
@@ -40,6 +42,11 @@ export function setupPublicPlaza(game, createDemo, ranges) {
     const nickname=nicknameInput.value.trim();
     if (!nickname || nickname.length>16 || /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(nickname)) {
       status.textContent='닉네임을 1~16자로 입력해 주세요.';
+      nicknameInput.focus();
+      return;
+    }
+    if (isBlockedNickname(nickname)) {
+      status.textContent='사용할 수 없는 표현이 포함되어 있습니다. 다른 닉네임을 입력해 주세요.';
       nicknameInput.focus();
       return;
     }
