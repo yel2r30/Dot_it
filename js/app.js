@@ -41,11 +41,6 @@ function baseFrameTime(type) {
   const fps = Number($(type+'Fps').value);
   return Number.isFinite(fps) && fps > 0 ? Math.round(1000 / fps) : 250;
 }
-function frameTime(type, absoluteIndex) {
-  return Object.hasOwn(timings[type].values,absoluteIndex)
-    ? timings[type].values[absoluteIndex]
-    : baseFrameTime(type);
-}
 function animationDurations(a) {
   return a.perFrame ? [...a.durations] : Array(a.count).fill(1000/a.fps);
 }
@@ -145,18 +140,17 @@ function resetSheetViewport() {
   viewport.scrollTop=0;
   viewport.scrollLeft=0;
 }
-function sheetSettings(type) {
-  const custom = actionSheets.get(type);
-  const width = Number($(custom ? type+'Width' : 'frameWidth').value);
-  const height = Number($(custom ? type+'Height' : 'frameHeight').value);
-  const x = $(custom ? type+'AnchorX' : 'anchorX').value;
-  const y = $(custom ? type+'AnchorY' : 'anchorY').value;
-  return {image:custom?.image ?? state.image, width, height,
-    sourceFacing:custom ? $(type+'SourceFacing').value || null : null,
+function sheetSettings(type, read = id=>$(id).value, image = state.image, sheets = actionSheets) {
+  const custom = sheets.get(type);
+  const width = Number(read(custom ? type+'Width' : 'frameWidth'));
+  const height = Number(read(custom ? type+'Height' : 'frameHeight'));
+  const x = read(custom ? type+'AnchorX' : 'anchorX');
+  const y = read(custom ? type+'AnchorY' : 'anchorY');
+  return {image:custom?.image ?? image, width, height,
+    sourceFacing:custom ? read(type+'SourceFacing') || null : null,
     anchorX:x==='' ? width/2 : Number(x), anchorY:y==='' ? height : Number(y)};
 }
-function sheetLayout(type) {
-  const sheet = sheetSettings(type);
+function sheetLayout(sheet) {
   const {image, width, height, anchorX, anchorY} = sheet;
   if (!image) throw new Error('이미지를 먼저 업로드해 주세요.');
   if (![width,height].every(n=>Number.isInteger(n)&&n>=8&&n<=256))
@@ -169,33 +163,38 @@ function sheetLayout(type) {
     throw new Error('발 기준점은 프레임 범위 안에 있어야 합니다.');
   return {...sheet,columns,rows,total};
 }
-function computeLayout(onlyType) {
+function computeLayout(onlyType, saved) {
+  const read = saved ? id=>saved.fields[id] ?? '' : id=>$(id).value;
+  const checked = saved ? id=>saved.checks[id] : id=>$(id).checked;
+  const settings = type=>sheetSettings(type,read,saved?.image,saved?.sheets);
+  const animationTimings = saved?.timings ?? timings;
   const animations={};
   for(const kind of onlyType ? [onlyType] : animationTypes) {
-    if(!isEnabled(kind)) continue;
+    if(optionalTypes.includes(kind)&&!checked(kind+'Enabled')) continue;
     let sheet;
-    try { sheet=sheetLayout(kind); }
+    try { sheet=sheetLayout(settings(kind)); }
     catch (error) { throw new Error(kind.toUpperCase()+' · '+error.message); }
     const {total}=sheet;
-    const start=Number($(kind+'Start').value),count=Number($(kind+'Count').value),fps=Number($(kind+'Fps').value);
+    const start=Number(read(kind+'Start')),count=Number(read(kind+'Count')),fps=Number(read(kind+'Fps'));
     if(![start,count,fps].every(Number.isInteger)||start<0||count<1||count>24||fps<1||fps>24||start+count>total)
       throw new Error(kind.toUpperCase()+' 설정을 확인해 주세요. 시작 번호와 프레임 수는 전체 '+total+'칸 안에 있어야 하고, FPS는 1~24입니다.');
-    const perFrame=timings[kind].enabled;
+    const timing=animationTimings[kind];
+    const perFrame=timing.enabled;
     const durations=perFrame
-      ? Array.from({length:count},(_,i)=>frameTime(kind,start+i))
+      ? Array.from({length:count},(_,i)=>timing.values[start+i] ?? Math.round(1000/fps))
       : null;
     if(perFrame&&!durations.every(v=>Number.isInteger(v)&&v>=20&&v<=3000))
       throw new Error(kind.toUpperCase()+' 프레임별 시간은 20~3000ms 사이의 정수여야 합니다.');
     animations[kind]={...sheet,start,count,fps,perFrame,durations};
   }
-  const sourceFacing=$('sourceFacing').value;
+  const sourceFacing=read('sourceFacing');
   if(!['left','right'].includes(sourceFacing))throw new Error('원본 방향을 선택해 주세요.');
-  const data = {...sheetSettings(),...animations[onlyType],animations,sourceFacing};
+  const data = {...settings(),...animations[onlyType],animations,sourceFacing};
   if (!onlyType && animations.special) {
-    data.specialLoop = $('specialLoop').checked;
+    data.specialLoop = checked('specialLoop');
     for (const [id, property] of [['specialDelay', 'specialDelayMs'], ['specialRepeat', 'specialRepeatMs']]) {
       if (data.specialLoop && id==='specialRepeat') continue;
-      const seconds = Number($(id).value);
+      const seconds = Number(read(id));
       if (!Number.isInteger(seconds) || seconds < 1 || seconds > 600)
         throw new Error('특별 IDLE 대기 시간과 재발동 간격은 1~600초 사이의 정수여야 합니다.');
       data[property] = seconds * 1000;
@@ -338,13 +337,97 @@ async function captureCharacter() {
   return {...snapshot,image,sheets};
 }
 
-async function restoreCharacter(saved, load) {
+const characterFileType = 'dot-it-character';
+const maxCharacterFileBytes = 160 * 1024 * 1024;
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+function readCharacterPng(value) {
+  const prefix='data:image/png;base64,';
+  if (typeof value!=='string' || !value.startsWith(prefix))
+    throw new Error('캐릭터 파일에 올바른 PNG가 없습니다.');
+  const binary=atob(value.slice(prefix.length));
+  if (!binary.startsWith('\x89PNG\r\n\x1a\n') || binary.slice(12,16)!=='IHDR' || binary.length<24)
+    throw new Error('캐릭터 파일의 PNG가 손상되었습니다.');
+  const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));
+  const header=new DataView(bytes.buffer);
+  if (![header.getUint32(16),header.getUint32(20)].every(size=>size>0&&size<=MAX_DIMENSION))
+    throw new Error('이미지 크기는 최대 2048 × 2048px입니다.');
+  return new Blob([bytes],{type:'image/png'});
+}
+
+function readCharacterFile(file) {
+  const validRecord = value=>value && typeof value==='object' && !Array.isArray(value);
+  const validTiming = value=>validRecord(value) && typeof value.enabled==='boolean' &&
+    validRecord(value.values) && Object.entries(value.values).every(([frame,ms])=>
+      /^(0|[1-9][0-9]{0,2})$/.test(frame) && Number.isInteger(ms) && ms>=20 && ms<=3000);
+  if (!validRecord(file) || file.format!==characterFileType || file.version!==1 ||
+      typeof file.name!=='string' || !validRecord(file.fields) || !validRecord(file.checks) ||
+      !validRecord(file.timings) || !validRecord(file.selectedFrames) || !Array.isArray(file.sheets) ||
+      file.sheets.length>animationTypes.length ||
+      !savedFields.every(id=>typeof file.fields[id]==='string') ||
+      !savedChecks.every(id=>typeof file.checks[id]==='boolean') ||
+      !animationTypes.every(type=>validTiming(file.timings[type]) &&
+        Number.isInteger(file.selectedFrames[type]) && file.selectedFrames[type]>=0 && file.selectedFrames[type]<24))
+    throw new Error('지원하지 않는 Dot_it 캐릭터 파일입니다.');
+  const types=new Set();
+  const sheets=file.sheets.map(entry=>{
+    const [type,sheet]=Array.isArray(entry)?entry:[];
+    if (!animationTypes.includes(type) || types.has(type) || !validRecord(sheet) ||
+        !validRecord(sheet.baseRange) || typeof sheet.baseRange.start!=='string' ||
+        typeof sheet.baseRange.count!=='string' || !validTiming(sheet.baseTiming) ||
+        !Number.isInteger(sheet.baseSelection) || sheet.baseSelection<0 || sheet.baseSelection>=24)
+      throw new Error('별도 시트 설정이 올바르지 않습니다.');
+    if (!['','left','right'].includes(file.fields[type+'SourceFacing']))
+      throw new Error('별도 시트의 원본 방향을 확인해 주세요.');
+    types.add(type);
+    return [type,{...sheet,image:readCharacterPng(sheet.image)}];
+  });
+  const timings=Object.fromEntries(animationTypes.map(type=>[type,file.timings[type]]));
+  const selectedFrames=Object.fromEntries(animationTypes.map(type=>[type,file.selectedFrames[type]]));
+  return {...file,timings,selectedFrames,image:readCharacterPng(file.image),sheets};
+}
+
+async function exportCharacterFile() {
+  const saved=await captureCharacter();
+  const [image,sheets]=await Promise.all([
+    blobToDataUrl(saved.image),
+    Promise.all(saved.sheets.map(async ([type,sheet])=>[type,{...sheet,image:await blobToDataUrl(sheet.image)}]))
+  ]);
+  const blob=new Blob([JSON.stringify({...saved,format:characterFileType,image,sheets})],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=(saved.name.replace(/[\\/:*?"<>|]/g,'-').trim() || 'character')+'.dotit.json';
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+  notice('캐릭터 파일을 내보냈습니다.');
+}
+
+async function importCharacterFile(file) {
+  if (file.size>maxCharacterFileBytes) throw new Error('캐릭터 파일 크기가 너무 큽니다.');
+  const load=++imageLoad;
+  const saved=readCharacterFile(JSON.parse(await file.text()));
+  await restoreCharacter(saved,load,'캐릭터 파일을 가져왔습니다. 이 브라우저에 보관하려면 저장을 눌러 주세요.');
+}
+
+async function restoreCharacter(saved, load, message='저장한 캐릭터를 불러왔습니다.') {
   if (saved.version!==1) throw new Error('지원하지 않는 캐릭터 저장 형식입니다.');
   const [image,sheets]=await Promise.all([
     createImageBitmap(saved.image),
     Promise.all(saved.sheets.map(async ([type,sheet])=>[type,{...sheet,image:await createImageBitmap(sheet.image)}]))
   ]);
   if (load!==imageLoad) return;
+  computeLayout(undefined,{...saved,image,sheets:new Map(sheets)});
   for (const type of animationTypes) clearActionSheet(type);
   for (const id of savedFields) $(id).value=saved.fields[id] ?? '';
   for (const id of savedChecks) $(id).checked=Boolean(saved.checks[id]);
@@ -363,7 +446,7 @@ async function restoreCharacter(saved, load) {
   $('spriteFile').value='';
   $('fileName').textContent='현재: '+saved.name;
   selectMode('idle');
-  apply('저장한 캐릭터를 불러왔습니다.');
+  apply(message);
 }
 
 async function handleCharacterStorage(save, startup=false) {
@@ -558,6 +641,22 @@ function init() {
   $('applyButton').addEventListener('click',()=>apply());
   $('saveCharacterButton').addEventListener('click',()=>handleCharacterStorage(true));
   $('loadCharacterButton').addEventListener('click',()=>handleCharacterStorage(false));
+  $('exportCharacterButton').addEventListener('click',async event=>{
+    const button=event.currentTarget;
+    button.disabled=true;
+    try { await exportCharacterFile(); }
+    catch (error) { notice('내보내기 실패: '+error.message,true); }
+    finally { button.disabled=false; }
+  });
+  const characterFile=$('characterFile');
+  $('importCharacterButton').addEventListener('click',()=>characterFile.click());
+  characterFile.addEventListener('change',async ()=>{
+    const file=characterFile.files[0];
+    characterFile.value='';
+    if (!file) return;
+    try { await importCharacterFile(file); }
+    catch (error) { notice('가져오기 실패: '+error.message,true); }
+  });
   $('perFrameToggle').addEventListener('change',ev=>{
     timings[state.selected].enabled=ev.target.checked;
     resetPreviewClock();
