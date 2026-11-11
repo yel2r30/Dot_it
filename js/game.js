@@ -140,6 +140,7 @@ export class Playground {
     );
   }
   enterTestRoom(image, ranges) {
+    if (this.roomPreviousData) throw new Error('현재 방에서 나온 뒤 다시 입장해 주세요.');
     if (!this.scene || !this.frameData) throw new Error('광장을 불러오는 중입니다. 잠시 뒤 다시 시도해 주세요.');
     this.roomPreviousData=this.frameData;
     const size=48;
@@ -152,11 +153,52 @@ export class Playground {
   }
   leaveTestRoom() {
     this.showRoomPlayer(null);
+    for (const key of this.plazaPlayers?.keys() ?? []) this.showPlazaPlayer(key,null);
     if (this.roomPreviousData) {
       const previous=this.roomPreviousData;
       this.roomPreviousData=null;
       this.install(previous);
     }
+  }
+  placePlazaPlayer(slot) {
+    this.x=GAME_WIDTH/2+(slot%4-1.5)*72;
+    this.y=GAME_HEIGHT/2+(Math.floor(slot/4)-.5)*72;
+    this.positionSprite();
+    this.notifyState();
+  }
+  plazaPose() {
+    if (!this.roomPreviousData || !this.player) return null;
+    return {x:Math.round(this.x),y:Math.round(this.y),action:this.animationType,flip:this.player.flipX};
+  }
+  showPlazaPlayer(id, pose) {
+    this.plazaPlayers ??= new Map();
+    let remote=this.plazaPlayers.get(id);
+    if (!pose) {
+      remote?.sprite.destroy();
+      remote?.label.destroy();
+      this.plazaPlayers.delete(id);
+      return;
+    }
+    if (!this.roomPreviousData) return;
+    const key='dotit-'+pose.action;
+    const info=this.frameData.animations[pose.action];
+    if (!info) return;
+    const x=Math.max(28,Math.min(GAME_WIDTH-28,pose.x));
+    const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
+    if (!remote) {
+      const sprite=this.scene.add.sprite(x,y,key+'-frame-'+info.start).setScale(2).setDepth(1);
+      const label=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff',backgroundColor:'#15242e'})
+        .setOrigin(.5,1).setDepth(3);
+      remote={sprite,label};
+      this.plazaPlayers.set(id,remote);
+    }
+    if (remote.action!==pose.action || remote.session!==pose.session) {
+      remote.sprite.play(key);
+      remote.action=pose.action;
+      remote.session=pose.session;
+    }
+    remote.sprite.setFlipX(pose.flip).setPosition(x,y);
+    remote.label.setPosition(x,y-52);
   }
   roomPose() {
     const match=this.player?.texture?.key?.match(/^dotit-(\w+)-frame-(\d+)$/);
