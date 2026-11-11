@@ -2,6 +2,8 @@ import { firebaseConfig } from './firebase-config.js?v=plaza-1';
 
 import { isBlockedNickname } from './nickname-filter.js?v=4';
 
+import { packPlazaAppearance, unpackPlazaAppearance } from './plaza-appearance.js?v=1';
+
 const sdk='https://www.gstatic.com/firebasejs/12.19.0/';
 const slots=8;
 const leaseMs=45000;
@@ -78,6 +80,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       if (session!==current) return;
       const user=account.currentUser;
       const guest=user.isAnonymous;
+      const appearance=packPlazaAppearance(game.frameData);
       const demo=await createDemo();
       if (session!==current) return;
       game.enterPublicPlaza(demo,ranges);
@@ -92,7 +95,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       const plaza=db.ref(database,'plazaV1');
       const initial=(await db.get(plaza)).val() ?? {};
       if (session!==current) return;
-      const payload=()=>({...game.plazaPose(),uid:user.uid,nickname,session:current.id,at:db.serverTimestamp()});
+      const payload=()=>({...game.plazaPose(),uid:user.uid,nickname,session:current.id,at:db.serverTimestamp(),...(appearance?{appearance}:{})});
       let offset=0;
       current.subscriptions.push(db.onValue(db.ref(database,'.info/serverTimeOffset'),snapshot=>{
         offset=Number(snapshot.val())||0;
@@ -131,8 +134,22 @@ export function setupPublicPlaza(game, createDemo, ranges) {
           remove(snapshot.key);
           return;
         }
-        current.remotes.set(snapshot.key,pose.at);
-        game.showPlazaPlayer(snapshot.key,pose);
+        const key=snapshot.key;
+        let entry=current.remotes.get(key);
+        if (!entry || entry.pose.session!==pose.session) {
+          if (entry) game.showPlazaPlayer(key,null);
+          entry={pose};
+          current.remotes.set(key,entry);
+          if (pose.appearance) {
+            const pending=entry;
+            void unpackPlazaAppearance(pose.appearance).then(data=>{
+              if (session!==current || current.remotes.get(key)!==pending) return;
+              game.setPlazaAppearance(key,data);
+              game.showPlazaPlayer(key,pending.pose);
+            }).catch(()=>{});
+          }
+        } else entry.pose=pose;
+        game.showPlazaPlayer(key,pose);
         updateCount();
       };
       const denied=()=>{if (session===current) void stop('광장 데이터를 읽을 수 없습니다. 다시 입장해 주세요.');};
@@ -145,13 +162,13 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       let pending=false,last='',sentAt=0;
       current.tick=setInterval(async ()=>{
         if (session!==current) return;
-        for (const [key,at] of current.remotes) if (at<now()-leaseMs) remove(key);
+        for (const [key,entry] of current.remotes) if (entry.pose.at<now()-leaseMs) remove(key);
         const pose=game.plazaPose();
         const encoded=JSON.stringify(pose);
         if (!pose || pending || (encoded===last && Date.now()-sentAt<12000)) return;
         pending=true;
         try {
-          await db.set(current.slot,{...pose,uid:user.uid,nickname,session:current.id,at:db.serverTimestamp()});
+          await db.update(current.slot,{...pose,at:db.serverTimestamp()});
           last=encoded;
           sentAt=Date.now();
         } catch {
