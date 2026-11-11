@@ -14,3 +14,7 @@
 .stage-footer{flex-wrap:wrap}
 .status-card{flex:1}
 @media(max-width:620px){.preview-directions{gap:4px}.preview-directions button{padding:6px 7px}}
+
+/* Horizontal mirror feedback for the sprite editor. */
+.mirror-result{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--accent);line-height:1.4}
+.status-card strong{overflow-wrap:anywhere}
