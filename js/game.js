@@ -15,6 +15,7 @@ export class Playground {
     this.onUpdate = onUpdate;
     this.frameData = null;
     this.frameKeys = [];
+    this.frameTop = new Map();
     this.animKeys = [];
     this.player = null;
     this.state = 'IDLE';
@@ -65,7 +66,7 @@ export class Playground {
     const scene = this.scene;
     if (this.player) { this.player.destroy(); this.player = null; }
     this.animKeys.forEach(k => { if (scene.anims.exists(k)) scene.anims.remove(k); });
-    this.frameKeys.forEach(k => { if (scene.textures.exists(k)) scene.textures.remove(k); });
+    this.frameKeys.forEach(k => { this.frameTop.delete(k); if (scene.textures.exists(k)) scene.textures.remove(k); });
     this.animKeys=[]; this.frameKeys=[];
     const { animations, sourceFacing } = data;
     const scale = Math.min(4,96/Math.max(data.width,data.height));
@@ -120,7 +121,7 @@ export class Playground {
     this.player.setFlipX(flipped);
     this.player.setPosition(this.x+(flipped?-offsetX:offsetX),this.y+offsetY);
     this.plazaName?.setPosition(this.x,this.y+this.localPlazaNameOffset());
-    this.plazaHearts?.setPosition(this.x,Math.max(16,this.player.y-frame.height*this.player.scaleY/2-4));
+    this.positionPlazaHearts(this.player,this.plazaHearts);
   }
   notifyState() {
     if (!this.player) return;
@@ -128,6 +129,21 @@ export class Playground {
       this.state, Math.round(this.x), Math.round(this.y),
       this.facing, this.player.flipX
     );
+  }
+  visibleFrameTop(ctx,width,height) {
+    const pixels=ctx.getImageData(0,0,width,height).data;
+    for (let y=0;y<height;y++) {
+      for (let x=0;x<width;x++) {
+        if (pixels[(y*width+x)*4+3]>32) return y;
+      }
+    }
+    return height/2;
+  }
+  positionPlazaHearts(sprite,hearts) {
+    if (!hearts) return;
+    const top=this.frameTop.get(sprite.texture.key) ?? 0;
+    const y=sprite.y+(top-sprite.height*sprite.originY)*sprite.scaleY-3;
+    hearts.setPosition(sprite.x,Math.max(16,y));
   }
   createAnimationAssets(data, prefix, frameKeys, animKeys) {
     const scene=this.scene;
@@ -137,12 +153,13 @@ export class Playground {
       const sheet=document.createElement('canvas');
       sheet.width=width;
       sheet.height=height;
-      const ctx=sheet.getContext('2d');
+      const ctx=sheet.getContext('2d',{willReadFrequently:true});
       const frames=Array.from({length:info.count},(_,i)=>{
         const index=info.start+i;
         const frameKey=key+'-frame-'+index;
         ctx.clearRect(0,0,width,height);
         ctx.drawImage(image,(index%columns)*width,Math.floor(index/columns)*height,width,height,0,0,width,height);
+        this.frameTop.set(frameKey,this.visibleFrameTop(ctx,width,height));
         scene.textures.addCanvas(frameKey,this.cloneCanvas(sheet));
         frameKeys.push(frameKey);
         return info.perFrame ? {key:frameKey,duration:info.durations[i]} : {key:frameKey};
@@ -185,7 +202,10 @@ export class Playground {
     for (const key of this.plazaPlayers?.keys() ?? []) this.showPlazaPlayer(key,null);
     if (!this.plazaDemo) return;
     for (const key of this.plazaDemo.animations) this.scene.anims.remove(key);
-    for (const key of this.plazaDemo.frames) this.scene.textures.remove(key);
+    for (const key of this.plazaDemo.frames) {
+      this.frameTop.delete(key);
+      this.scene.textures.remove(key);
+    }
     this.plazaDemo=null;
     const previous=this.plazaPreviousData ?? this.frameData;
     this.plazaPreviousData=null;
@@ -214,7 +234,7 @@ export class Playground {
   createPlazaName(x, y, nickname) {
     return this.scene.add.text(x,y+PLAZA_NAME_OFFSET,nickname,{
       fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#fff',
-      padding:{x:4,y:2}
+      stroke:'#000000',strokeThickness:2,padding:{x:4,y:2}
     }).setOrigin(.5,0).setDepth(3);
   }
   setPlazaNickname(nickname) {
@@ -232,12 +252,12 @@ export class Playground {
   createPlazaHearts(x,y,hp) {
     return this.scene.add.text(x,y,this.heartText(hp),{
       fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#ff858e',
-      padding:{x:3,y:1}
+      stroke:'#000000',strokeThickness:2,padding:{x:3,y:1}
     }).setOrigin(.5,1).setDepth(3);
   }
   positionRemotePlazaLabels(remote,x,y) {
     remote.label.setPosition(x,y+remote.nameOffset);
-    remote.hearts.setPosition(x,Math.max(16,y-remote.headOffset));
+    this.positionPlazaHearts(remote.sprite,remote.hearts);
   }
   updatePlazaHealth() {
     this.plazaHearts?.setText(this.heartText(this.plazaCombat.hp));
@@ -321,7 +341,10 @@ export class Playground {
       remote?.hearts.destroy();
       if (remote?.appearance) {
         for (const key of remote.appearance.animations) this.scene.anims.remove(key);
-        for (const key of remote.appearance.frames) this.scene.textures.remove(key);
+        for (const key of remote.appearance.frames) {
+          this.frameTop.delete(key);
+          this.scene.textures.remove(key);
+        }
       }
       this.plazaPlayers.delete(id);
       return;
@@ -352,7 +375,6 @@ export class Playground {
       remote.session=pose.session;
     }
     remote.sprite.setFlipX(pose.flip);
-    remote.headOffset=appearance ? data.height*data.worldScale/2+4 : 48;
     if (remote.label.text!==nickname) remote.label.setText(nickname);
     const hearts=this.heartText(pose.hp);
     if (remote.hearts.text!==hearts) remote.hearts.setText(hearts);
@@ -411,7 +433,7 @@ export class Playground {
     const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
     if (!this.roomPlayer) {
       this.roomPlayer=this.scene.add.sprite(x,y,key).setScale(2).setDepth(1);
-      this.roomLabel=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff'})
+      this.roomLabel=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff',stroke:'#000000',strokeThickness:2})
         .setOrigin(.5,1).setDepth(3);
     }
     this.roomPlayer.setTexture(key).setFlipX(pose.flip).setPosition(x,y);
@@ -452,6 +474,7 @@ export class Playground {
   }
   update(dt) {
     this.updatePlazaPlayers(dt);
+    if (this.player) this.positionPlazaHearts(this.player,this.plazaHearts);
     if (!this.player || !this.cursors || !this.frameData) return;
     if (this.plazaCombat?.flashMs>0) {
       this.plazaCombat.flashMs=Math.max(0,this.plazaCombat.flashMs-dt);
