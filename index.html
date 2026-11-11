@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#10161d">
   <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
   <title>Dot_it | Pixel Character Playground</title>
-  <link rel="stylesheet" href="./css/style.css?v=dev001-timeline-6">
+  <link rel="stylesheet" href="./css/style.css?v=dev002-animations-1">
 </head>
 <body>
   <div class="page-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="Dot_it 홈"><span class="brand-symbol" aria-hidden="true">▦</span><span>Dot<span class="brand-accent">_</span>it</span></a>
-      <div class="topbar-right"><span class="edition">PIXEL CHARACTER PLAYGROUND</span><span class="build-pill"><span class="signal-dot"></span> DEV-001 · LOCAL</span></div>
+      <div class="topbar-right"><span class="edition">PIXEL CHARACTER PLAYGROUND</span><span class="build-pill"><span class="signal-dot"></span> DEV-002 · LOCAL</span></div>
     </header>
 
     <main class="workspace">
@@ -21,7 +21,7 @@
           <div><p class="eyebrow">01 / SPRITE WORKSHOP</p><h1 id="editor-title">내 캐릭터 만들기</h1></div>
           <span class="step-token">EDIT</span>
         </div>
-        <p class="lead">PNG 시트를 넣고 IDLE과 WALK의 프레임을 지정해 보세요.</p>
+        <p class="lead">PNG 시트에서 IDLE · WALK · SPECIAL IDLE · ATTACK 프레임을 설정해 보세요.</p>
 
         <div class="section-title"><span>01</span> 스프라이트 업로드</div>
         <input id="spriteFile" class="visually-hidden" type="file" accept=".png,image/png" aria-describedby="upload-hint">
@@ -57,6 +57,8 @@
         <div class="mode-tabs" role="group" aria-label="편집할 애니메이션">
           <button id="idleTab" class="mode-tab active" type="button" aria-pressed="true">IDLE <span>대기</span></button>
           <button id="walkTab" class="mode-tab" type="button" aria-pressed="false">WALK <span>걷기</span></button>
+          <button id="specialTab" class="mode-tab" type="button" aria-pressed="false">SPECIAL <span>특별 대기</span></button>
+          <button id="attackTab" class="mode-tab" type="button" aria-pressed="false">ATTACK <span>공격</span></button>
         </div>
         <div class="animation-fields" id="idleFields">
           <p class="field-context">IDLE · 움직이지 않을 때 반복 재생</p>
@@ -72,6 +74,34 @@
             <label>시작 번호<input id="walkStart" type="number" min="0" step="1" value="6"></label>
             <label>프레임 수<input id="walkCount" type="number" min="1" max="24" step="1" value="6"></label>
             <label>FPS<input id="walkFps" type="number" min="1" max="24" step="1" value="8"></label>
+          </div>
+        </div>
+        <div class="animation-fields" id="specialFields" hidden>
+          <p class="field-context">SPECIAL IDLE · 대기 중 한 번 재생하고 IDLE로 복귀</p>
+          <label class="optional-animation-toggle"><input id="specialEnabled" type="checkbox"><span>특별 IDLE 사용 <small>시트에 특별 대기 동작이 없다면 꺼 둬도 됩니다.</small></span></label>
+          <div class="optional-animation-config" id="specialOptions" hidden>
+            <div class="fields three">
+              <label>시작 번호<input id="specialStart" type="number" min="0" step="1" value="0"></label>
+              <label>프레임 수<input id="specialCount" type="number" min="1" max="24" step="1" value="4"></label>
+              <label>FPS<input id="specialFps" type="number" min="1" max="24" step="1" value="6"></label>
+            </div>
+            <div class="fields two optional-extra-fields">
+              <label>첫 발동 대기 (초)<input id="specialDelay" type="number" min="1" max="600" step="1" value="30"></label>
+              <label>재발동 간격 (초)<input id="specialRepeat" type="number" min="1" max="600" step="1" value="60"></label>
+            </div>
+            <p class="field-context">이동하거나 공격하면 즉시 취소됩니다.</p>
+          </div>
+        </div>
+        <div class="animation-fields" id="attackFields" hidden>
+          <p class="field-context">ATTACK · J 키로 한 번 재생하고 이동/대기로 복귀</p>
+          <label class="optional-animation-toggle"><input id="attackEnabled" type="checkbox"><span>공격 애니메이션 사용 <small>공격 시트가 없으면 비활성화해도 됩니다.</small></span></label>
+          <div class="optional-animation-config" id="attackOptions" hidden>
+            <div class="fields three">
+              <label>시작 번호<input id="attackStart" type="number" min="0" step="1" value="0"></label>
+              <label>프레임 수<input id="attackCount" type="number" min="1" max="24" step="1" value="4"></label>
+              <label>FPS<input id="attackFps" type="number" min="1" max="24" step="1" value="10"></label>
+            </div>
+            <p class="field-context">공격 중 이동할 수 있으며 모션을 우선 재생합니다. J키 홀드 반복 공격은 없습니다.</p>
           </div>
         </div>
         <div class="frame-timing-panel">
@@ -113,7 +143,7 @@
               </label>
               <button type="button" id="resetFrameTimes" class="text-button">현재 FPS로 초기화</button>
             </div>
-            <p class="frame-timing-help">프레임을 누르면 해당 위치로 이동하고, 점(◆)을 드래그하면 길이가 바뀝니다. 프레임당 20~3000ms · IDLE/WALK 별도 적용.</p>
+            <p class="frame-timing-help">프레임을 누르면 해당 위치로 이동하고, 점(◆)을 드래그하면 길이가 바뀝니다. 프레임당 20~3000ms · 동작별 개별 적용.</p>
           </div>
         </div>
         <div class="anim-preview-area">
@@ -135,7 +165,7 @@
           <div><p class="eyebrow">02 / LIVE PLAYGROUND</p><h2 id="stage-title">픽셀 광장</h2></div>
           <span class="stage-tag"><span class="signal-dot"></span> 1 PLAYER</span>
         </div>
-        <p class="stage-description">왼쪽에서 만든 캐릭터가 이곳에 등장해요. 걷다가 멈추면 IDLE로 전환됩니다.</p>
+        <p class="stage-description">캐릭터를 움직이거나 J로 공격할 수 있어요. 특별 IDLE을 등록하면 일정 시간 대기 후 자동 재생됩니다.</p>
         <div class="stage-frame"><div id="gameMount" class="game-mount" aria-label="캐릭터 조작용 게임 화면"></div><div class="stage-corner stage-corner-tl"></div><div class="stage-corner stage-corner-br"></div></div>
         <div class="stage-footer">
           <div class="player-card"><span class="avatar-mark">◆</span><div><small>ACTIVE CHARACTER</small><strong id="activeCharacter">DEMO / Penguin</strong></div></div>
@@ -145,14 +175,14 @@
         </div>
         <div class="control-panel">
           <div><p class="eyebrow">CONTROLS</p><strong>캐릭터 이동</strong></div>
-          <div class="key-hints"><span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span><span class="or">또는</span><span class="keycap">↑</span><span class="keycap">←</span><span class="keycap">↓</span><span class="keycap">→</span></div>
+          <div class="key-hints"><span class="keycap">J</span><span class="or">공격 ·</span><span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span><span class="or">또는</span><span class="keycap">↑</span><span class="keycap">←</span><span class="keycap">↓</span><span class="keycap">→</span></div>
         </div>
-        <div class="next-step"><span class="next-step-icon">✦</span><div><strong>다음 업데이트</strong><p>공격 · 특별 IDLE · 계정 저장 · 실시간 멀티플레이는 이후 단계에서 추가됩니다.</p></div></div>
+        <div class="next-step"><span class="next-step-icon">✦</span><div><strong>다음 업데이트</strong><p>이번 단계에서는 공격과 특별 IDLE까지 지원합니다. 계정 저장과 실시간 멀티플레이는 이후 단계에서 추가됩니다.</p></div></div>
       </section>
     </main>
-    <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-001 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
+    <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=dev001-timeline-6"></script>
+  <script type="module" src="./js/app.js?v=dev002-animations-1"></script>
 </body>
 </html>
