@@ -1,16 +1,20 @@
-import { Playground } from './game.js?v=dev001-timeline-6';
+import { Playground } from './game.js?v=dev002-animations-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_DIMENSION = 2048;
-const ids = ['frameWidth','frameHeight','idleStart','idleCount','idleFps','walkStart','walkCount','walkFps'];
-const state = { image: null, demo: true, fileName: 'DEMO / Penguin', selected: 'idle', frames: { idle:{start:0,count:4,fps:4},walk:{start:6,count:6,fps:8} }, frameWidth:32, frameHeight:32, game:null, timeline:null };
-const timings = {
-  idle: { enabled: false, values: {} },
-  walk: { enabled: false, values: {} }
-};
-const selectedFrames = {idle:0,walk:0};
+const animationTypes = ['idle', 'walk', 'special', 'attack'];
+const optionalTypes = ['special', 'attack'];
+const ids = ['frameWidth', 'frameHeight', 'specialDelay', 'specialRepeat',
+  ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps'].map(field => type + field))];
+const state = { image: null, fileName: 'DEMO / Penguin', selected: 'idle', game: null, timeline: null };
+const timings = Object.fromEntries(animationTypes.map(type => [type, { enabled: false, values: {} }]));
+const selectedFrames = Object.fromEntries(animationTypes.map(type => [type, 0]));
+
+function isEnabled(type) {
+  return !optionalTypes.includes(type) || $(type + 'Enabled').checked;
+}
 let previewFrame = 0;
 let previewFacing = 'right';
 let previewTime = 0;
@@ -21,7 +25,7 @@ function resetPreviewClock() {
   state.timeline?.setPlayhead(0);
 }
 function resetTimingSettings() {
-  for(const type of ['idle','walk']){
+  for(const type of animationTypes){
     timings[type].enabled=false;
     timings[type].values={};
     selectedFrames[type]=0;
@@ -42,7 +46,7 @@ function animationDurations(a) {
 function refreshInspector() {
   const type=state.selected;
   try {
-    const a=computeLayout().animations[type];
+    const a=computeLayout(type).animations[type];
     const selected=Math.max(0,Math.min(a.count-1,selectedFrames[type]));
     selectedFrames[type]=selected;
     const time=a.perFrame?a.durations[selected]:Math.round(1000/a.fps);
@@ -62,10 +66,12 @@ function refreshInspector() {
 function renderFrameTimes() {
   const type=state.selected;
   $('perFrameToggle').checked=timings[type].enabled;
-  $('frameTimingEditor').hidden=false;
+  $('frameTimingEditor').hidden=!isEnabled(type);
+  $('perFrameToggle').disabled=!isEnabled(type);
+  if (!isEnabled(type)) return;
   if(!state.timeline)return;
   try {
-    const data=computeLayout();
+    const data=computeLayout(type);
     const a=data.animations[type];
     selectedFrames[type]=Math.max(0,Math.min(a.count-1,selectedFrames[type]));
     state.timeline.render({
@@ -105,7 +111,7 @@ function changeTimelineDuration(index,value,finished) {
   timings[type].values[absolute]=value;
   selectedFrames[type]=index;
   try {
-    const a=computeLayout().animations[type];
+    const a=computeLayout(type).animations[type];
     const total=animationDurations(a).reduce((sum,d)=>sum+d,0);
     previewTime=Math.min(previewTime,Math.max(0,total-1));
     state.timeline?.setSelection(index);
@@ -165,7 +171,7 @@ function resetSheetViewport() {
   viewport.scrollTop=0;
   viewport.scrollLeft=0;
 }
-function computeLayout() {
+function computeLayout(onlyType) {
   if(!state.image) throw new Error('이미지를 먼저 업로드해 주세요.');
   const w=Number($('frameWidth').value),h=Number($('frameHeight').value);
   if(!Number.isInteger(w)||!Number.isInteger(h)||w<8||h<8||w>256||h>256) throw new Error('프레임 크기는 8~256px 사이의 정수여야 합니다.');
@@ -173,7 +179,8 @@ function computeLayout() {
   const cols=state.image.width/w,rows=state.image.height/h,total=cols*rows;
   if(total>512) throw new Error('프레임 수는 512개 이하로 설정해 주세요.');
   const animations={};
-  for(const kind of ['idle','walk']) {
+  for(const kind of onlyType ? [onlyType] : animationTypes) {
+    if(!isEnabled(kind)) continue;
     const start=Number($(kind+'Start').value),count=Number($(kind+'Count').value),fps=Number($(kind+'Fps').value);
     if(![start,count,fps].every(Number.isInteger)||start<0||count<1||count>24||fps<1||fps>24||start+count>total)
       throw new Error(kind.toUpperCase()+' 설정을 확인해 주세요. 시작 번호와 프레임 수는 전체 '+total+'칸 안에 있어야 하고, FPS는 1~24입니다.');
@@ -187,7 +194,16 @@ function computeLayout() {
   }
   const sourceFacing=$('sourceFacing').value;
   if(!['left','right'].includes(sourceFacing))throw new Error('원본 방향을 선택해 주세요.');
-  return {image:state.image,width:w,height:h,columns:cols,rows,total,animations,sourceFacing};
+  const data = {image:state.image,width:w,height:h,columns:cols,rows,total,animations,sourceFacing};
+  if (!onlyType && animations.special) {
+    for (const [id, property] of [['specialDelay', 'specialDelayMs'], ['specialRepeat', 'specialRepeatMs']]) {
+      const seconds = Number($(id).value);
+      if (!Number.isInteger(seconds) || seconds < 1 || seconds > 600)
+        throw new Error('특별 IDLE 대기 시간과 재발동 간격은 1~600초 사이의 정수여야 합니다.');
+      data[property] = seconds * 1000;
+    }
+  }
+  return data;
 }
 function drawSheet() {
   const canvas=$('sheetCanvas'),g=canvas.getContext('2d');
@@ -208,7 +224,7 @@ function drawSheet() {
   if(!Number.isFinite(count))count=0;
   for(let i=0;i<total;i++) {
     const x=(i%columns)*w*zoom,y=Math.floor(i/columns)*h*zoom;
-    const selected=i>=start&&i<start+count;
+    const selected=isEnabled(state.selected)&&i>=start&&i<start+count;
     g.strokeStyle=selected?'#b8e66f':'rgba(237,243,248,.48)';
     g.lineWidth=selected?2:1;
     g.strokeRect(x+.5,y+.5,w*zoom-1,h*zoom-1);
@@ -235,14 +251,19 @@ function updateMirrorLabel() {
   $('previewMirrorStatus').textContent=mirrored?'좌우 반전 적용됨':'원본 방향 그대로';
 }
 function syncPreviewInfo() {
-  const type=state.selected.toUpperCase();
-  $('previewTitle').textContent=type;
+  $('previewTitle').textContent=state.selected==='special'?'SPECIAL IDLE':state.selected.toUpperCase();
+  if (!isEnabled(state.selected)) {
+    $('previewInfo').textContent='사용 안 함';
+    $('previewFrameTime').textContent='';
+    $('timelineTimeLabel').textContent='';
+    return;
+  }
   $('previewInfo').textContent=$(''+state.selected+'Count').value+' frames · '+
     (timings[state.selected].enabled?'프레임별 시간':'전체 '+$(state.selected+'Fps').value+' FPS');
 }
 function selectMode(mode) {
   state.selected=mode;
-  for(const type of ['idle','walk']){
+  for(const type of animationTypes){
     $(type+'Tab').classList.toggle('active',type===mode);
     $(type+'Tab').setAttribute('aria-pressed',String(type===mode));
     $(type+'Fields').hidden=type!==mode;
@@ -256,7 +277,8 @@ function animatePreview(timestamp) {
   const c=$('animCanvas'),g=c.getContext('2d');
   g.clearRect(0,0,c.width,c.height);
   let data;
-  try {data=computeLayout();} catch {lastPreviewTime=0;return;}
+  if (!isEnabled(state.selected)) return;
+  try {data=computeLayout(state.selected);} catch {lastPreviewTime=0;return;}
   const a=data.animations[state.selected];
   const durations=animationDurations(a);
   const total=durations.reduce((sum,d)=>sum+d,0);
@@ -284,6 +306,18 @@ function animatePreview(timestamp) {
     (c.width-renderW)/2,(c.height-renderH)/2,renderW,renderH);
   g.restore();
 }
+function resetOptionalAnimations(total) {
+  for (const type of optionalTypes) {
+    $(type+'Enabled').checked=false;
+    $(type+'Options').hidden=true;
+    $(type+'Start').value='0';
+    $(type+'Count').value=String(Math.max(1, Math.min(4, total)));
+    $(type+'Fps').value=type==='special'?'6':'10';
+  }
+  $('specialDelay').value='30';
+  $('specialRepeat').value='60';
+}
+
 function resetDefaults(demo=false) {
   $('frameWidth').value='32';$('frameHeight').value='32';
   $('idleStart').value='0';$('idleCount').value='4';$('idleFps').value='4';
@@ -302,9 +336,9 @@ function apply() {
   } catch(e) { notice(e.message,true); }
 }
 function useDemo() {
-  state.image=createDemo();state.demo=true;state.fileName='DEMO / Penguin';
+  state.image=createDemo();state.fileName='DEMO / Penguin';
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
-  resetTimingSettings();resetDefaults(true);drawSheet();resetSheetViewport();renderFrameTimes();apply();
+  resetTimingSettings();resetOptionalAnimations(12);resetDefaults(true);selectMode('idle');resetSheetViewport();apply();
 }
 async function handleFile(file) {
   if(!file)return;
@@ -319,7 +353,6 @@ async function handleFile(file) {
     if(img.width>MAX_DIMENSION||img.height>MAX_DIMENSION||!img.width||!img.height)
       throw new Error('이미지 크기는 최대 2048 × 2048px입니다.');
     state.image=img;
-    state.demo=false;
     state.fileName=file.name.replace(/\.png$/i,'');
     $('fileName').textContent='현재: '+file.name;
     const dims=suggestFrameSize(img);
@@ -327,8 +360,8 @@ async function handleFile(file) {
     const total=Math.floor(img.width/Number($('frameWidth').value))*Math.floor(img.height/Number($('frameHeight').value));
     $('idleStart').value='0';$('idleCount').value=String(Math.max(1,Math.min(4,total)));
     $('walkStart').value=String(total>4?4:0);$('walkCount').value=String(Math.max(1,Math.min(6,total-Number($('walkStart').value))));
-    resetTimingSettings();resetPreviewClock();syncPreviewInfo();drawSheet();
-    resetSheetViewport();renderFrameTimes();
+    resetTimingSettings();resetOptionalAnimations(total);selectMode('idle');
+    resetSheetViewport();
     notice('시트를 불러왔습니다. '+(dims?'프레임 크기 '+dims+'×'+dims+'px를 임시 설정했습니다. ':'')+'원본 방향과 애니메이션 범위를 확인하세요.');
   } catch(e) { notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
   finally { if(url)URL.revokeObjectURL(url); }
@@ -347,8 +380,16 @@ function init() {
   ['dragleave','drop'].forEach(type=>zone.addEventListener(type,ev=>{ev.preventDefault();zone.classList.remove('drag-over');}));
   zone.addEventListener('drop',ev=>handleFile(ev.dataTransfer?.files?.[0]));
   $('demoButton').addEventListener('click',useDemo);
-  $('idleTab').addEventListener('click',()=>selectMode('idle'));
-  $('walkTab').addEventListener('click',()=>selectMode('walk'));
+  for (const type of animationTypes) {
+    $(type+'Tab').addEventListener('click',()=>selectMode(type));
+  }
+  for (const type of optionalTypes) {
+    $(type+'Enabled').addEventListener('change',event=>{
+      $(type+'Options').hidden=!event.target.checked;
+      selectMode(type);
+      notice('설정이 변경되었습니다. 적용하기를 눌러 게임에 반영하세요.');
+    });
+  }
   $('applyButton').addEventListener('click',apply);
   $('perFrameToggle').addEventListener('change',ev=>{
     timings[state.selected].enabled=ev.target.checked;
@@ -422,8 +463,9 @@ function init() {
     catch(e){notice(e.message,true);}
   });
   $('sheetCanvas').addEventListener('click',ev=>{
+    if (!isEnabled(state.selected)) return;
     try {
-      const data=computeLayout(),rect=ev.currentTarget.getBoundingClientRect();
+      const data=computeLayout(state.selected),rect=ev.currentTarget.getBoundingClientRect();
       const sx=ev.currentTarget.width/rect.width,sy=ev.currentTarget.height/rect.height;
       const x=(ev.clientX-rect.left)*sx/Number(ev.currentTarget.dataset.zoom);
       const y=(ev.clientY-rect.top)*sy/Number(ev.currentTarget.dataset.zoom);
