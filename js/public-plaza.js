@@ -10,11 +10,13 @@ const leaseMs=45000;
 const guestAppName='dot-it-plaza-guest';
 const allowedActions=new Set(['idle','walk','special','attack','damage','death']);
 
-export function setupPublicPlaza(game, createDemo, ranges) {
+export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
   const enter=document.getElementById('plazaEnter');
   const leave=document.getElementById('plazaLeave');
   const status=document.getElementById('plazaStatus');
   const nicknameInput=document.getElementById('plazaNickname');
+  const characterChoice=document.getElementById('plazaCharacter');
+  const activeCharacter=document.getElementById('activeCharacter');
   let session;
 
   async function stop(message='공용 광장에서 나왔습니다.') {
@@ -24,7 +26,10 @@ export function setupPublicPlaza(game, createDemo, ranges) {
     clearInterval(current.tick);
     clearTimeout(current.timeout);
     for (const unsubscribe of current.subscriptions) unsubscribe();
-    if (current.demoInstalled) game.leavePublicPlaza();
+    if (current.demoInstalled) {
+      game.leavePublicPlaza();
+      activeCharacter.textContent=current.previousName;
+    }
     leave.disabled=true;
     status.textContent=message;
     try {
@@ -35,7 +40,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       }
     } catch {} finally {
       if (current.database) current.db.goOffline(current.database);
-      if (!session) enter.disabled=nicknameInput.disabled=false;
+      if (!session) enter.disabled=nicknameInput.disabled=characterChoice.disabled=false;
     }
   }
 
@@ -56,7 +61,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
     const current={id:crypto.randomUUID(),subscriptions:[],remotes:new Map()};
     session=current;
     leave.disabled=false;
-    enter.disabled=nicknameInput.disabled=true;
+    enter.disabled=nicknameInput.disabled=characterChoice.disabled=true;
     status.textContent='공용 광장에 연결하는 중입니다.';
     current.timeout=setTimeout(()=>stop('연결 시간이 초과됐습니다. 잠시 뒤 다시 시도해 주세요.'),18000);
     try {
@@ -80,11 +85,16 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       if (session!==current) return;
       const user=account.currentUser;
       const guest=user.isAnonymous;
-      const appearance=packPlazaAppearance(game.frameData);
       const demo=await createDemo();
       if (session!==current) return;
-      game.enterPublicPlaza(demo,ranges);
+      const character=await selectCharacter(characterChoice.value,demo);
+      if (session!==current) return;
+      const appearance=packPlazaAppearance(character.data);
+      if (session!==current) return;
+      current.previousName=activeCharacter.textContent;
+      game.enterPublicPlaza(demo,ranges,character.data);
       current.demoInstalled=true;
+      activeCharacter.textContent=character.name;
       game.setPlazaNickname(nickname);
       current.subscriptions.push(auth.onAuthStateChanged(account,next=>{
         if (session===current && next?.uid!==user.uid) void stop('로그인이 종료되어 광장에서 나왔습니다.');
@@ -175,8 +185,10 @@ export function setupPublicPlaza(game, createDemo, ranges) {
           if (session===current) void stop('광장에 위치를 전송할 수 없습니다. 다시 입장해 주세요.');
         } finally {pending=false;}
       },200);
-    } catch {
-      if (session===current) await stop('공용 광장에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+    } catch (error) {
+      if (session===current) await stop(error?.message==='저장한 캐릭터가 없습니다.'
+        ? '저장한 캐릭터가 없습니다. 다른 캐릭터를 선택해 주세요.'
+        : '공용 광장에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
     }
   }
   enter.addEventListener('click',()=>start());
