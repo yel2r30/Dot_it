@@ -18,3 +18,15 @@
 /* Horizontal mirror feedback for the sprite editor. */
 .mirror-result{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--accent);line-height:1.4}
 .status-card strong{overflow-wrap:anywhere}
+
+/* Sheet previews must start at row 0. Flex centering previously clipped overflow above the scroll origin. */
+.sheet-scroll{
+  height:270px;
+  align-items:flex-start;
+  justify-content:flex-start;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+#sheetCanvas{flex-shrink:0;align-self:flex-start}
+@media(max-width:1050px){.sheet-scroll{height:270px}}
+@media(max-width:620px){.sheet-scroll{height:235px}}
