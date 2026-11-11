@@ -70,27 +70,7 @@ export class Playground {
     this.idleElapsedMs = 0;
     this.nextSpecialMs = data.specialDelayMs ?? 30000;
     this.moving = false;
-    for (const [kind, info] of Object.entries(animations)) {
-      const key='dotit-'+kind;
-      const {image,width,height,columns}=info.image ? info : data;
-      const sheet=document.createElement('canvas');
-      sheet.width=width;
-      sheet.height=height;
-      const ctx=sheet.getContext('2d');
-      const frames=Array.from({length:info.count},(_,i)=>{
-        const index=info.start+i;
-        const frameKey=key+'-frame-'+index;
-        ctx.clearRect(0,0,width,height);
-        ctx.drawImage(image,(index%columns)*width,Math.floor(index/columns)*height,width,height,0,0,width,height);
-        scene.textures.addCanvas(frameKey,this.cloneCanvas(sheet));
-        this.frameKeys.push(frameKey);
-        return info.perFrame ? {key:frameKey,duration:info.durations[i]} : {key:frameKey};
-      });
-      const timeConfig=info.perFrame?{duration:1}:{frameRate:info.fps};
-      const loops = kind==='idle' || kind==='walk' || (kind==='special' && data.specialLoop);
-      scene.anims.create({key,frames,...timeConfig,repeat:loops?-1:0});
-      this.animKeys.push(key);
-    }
+    this.createAnimationAssets(data,'dotit-',this.frameKeys,this.animKeys);
     const savedX=this.x ?? GAME_WIDTH/2, savedY=this.y ?? GAME_HEIGHT/2;
     this.player=scene.add.sprite(savedX,savedY,'dotit-idle-frame-'+animations.idle.start)
       .setScale(scale);
@@ -135,7 +115,7 @@ export class Playground {
       frame.height/2-(frame.anchorY ?? frame.height))*this.player.scaleY;
     this.player.setFlipX(flipped);
     this.player.setPosition(this.x+(flipped?-offsetX:offsetX),this.y+offsetY);
-    this.plazaName?.setPosition(this.x,this.y+PLAZA_NAME_OFFSET);
+    this.plazaName?.setPosition(this.x,this.y+this.localPlazaNameOffset());
   }
   notifyState() {
     if (!this.player) return;
@@ -144,23 +124,65 @@ export class Playground {
       this.facing, this.player.flipX
     );
   }
-  enterTestRoom(image, ranges) {
-    if (this.roomPreviousData) throw new Error('현재 방에서 나온 뒤 다시 입장해 주세요.');
-    if (!this.scene || !this.frameData) throw new Error('광장을 불러오는 중입니다. 잠시 뒤 다시 시도해 주세요.');
-    this.roomPreviousData=this.frameData;
+  createAnimationAssets(data, prefix, frameKeys, animKeys) {
+    const scene=this.scene;
+    for (const [kind, info] of Object.entries(data.animations)) {
+      const key=prefix+kind;
+      const {image,width,height,columns}=info.image ? info : data;
+      const sheet=document.createElement('canvas');
+      sheet.width=width;
+      sheet.height=height;
+      const ctx=sheet.getContext('2d');
+      const frames=Array.from({length:info.count},(_,i)=>{
+        const index=info.start+i;
+        const frameKey=key+'-frame-'+index;
+        ctx.clearRect(0,0,width,height);
+        ctx.drawImage(image,(index%columns)*width,Math.floor(index/columns)*height,width,height,0,0,width,height);
+        scene.textures.addCanvas(frameKey,this.cloneCanvas(sheet));
+        frameKeys.push(frameKey);
+        return info.perFrame ? {key:frameKey,duration:info.durations[i]} : {key:frameKey};
+      });
+      const timeConfig=info.perFrame?{duration:1}:{frameRate:info.fps};
+      const loops = kind==='idle' || kind==='walk' || (kind==='special' && data.specialLoop);
+      scene.anims.create({key,frames,...timeConfig,repeat:loops?-1:0});
+      animKeys.push(key);
+    }
+  }
+  roomDemoData(image, ranges) {
     const size=48;
     const fps={idle:4,walk:8,special:4,attack:10,damage:10,death:10};
     const animations=Object.fromEntries(Object.entries(ranges).map(([type,[start,count]])=>[
       type,{start,count,fps:fps[type]}
     ]));
-    this.install({image,width:size,height:size,columns:image.width/size,animations,sourceFacing:'right',specialLoop:true});
-    this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y),this.facing,this.player.flipX);
+    return {image,width:size,height:size,columns:image.width/size,animations,sourceFacing:'right',specialLoop:true};
   }
-  leaveTestRoom() {
-    this.showRoomPlayer(null);
+  enterPublicPlaza(image, ranges) {
+    this.checkRoomAvailability();
+    const demo=this.roomDemoData(image,ranges);
+    const frames=[], animations=[];
+    this.createAnimationAssets(demo,'plaza-demo-',frames,animations);
+    this.plazaDemo={data:demo,frames,animations};
+  }
+  leavePublicPlaza() {
     this.plazaName?.destroy();
     this.plazaName=null;
     for (const key of this.plazaPlayers?.keys() ?? []) this.showPlazaPlayer(key,null);
+    if (!this.plazaDemo) return;
+    for (const key of this.plazaDemo.animations) this.scene.anims.remove(key);
+    for (const key of this.plazaDemo.frames) this.scene.textures.remove(key);
+    this.plazaDemo=null;
+  }
+  checkRoomAvailability() {
+    if (this.roomPreviousData || this.plazaDemo) throw new Error('현재 방에서 나온 뒤 다시 입장해 주세요.');
+    if (!this.scene || !this.player) throw new Error('광장을 불러오는 중입니다. 잠시 뒤 다시 시도해 주세요.');
+  }
+  enterTestRoom(image, ranges) {
+    this.checkRoomAvailability();
+    this.roomPreviousData=this.frameData;
+    this.install(this.roomDemoData(image,ranges));
+  }
+  leaveTestRoom() {
+    this.showRoomPlayer(null);
     if (this.roomPreviousData) {
       const previous=this.roomPreviousData;
       this.roomPreviousData=null;
@@ -176,6 +198,11 @@ export class Playground {
   setPlazaNickname(nickname) {
     this.plazaName?.destroy();
     this.plazaName=this.createPlazaName(this.x,this.y,nickname);
+    this.plazaName.setPosition(this.x,this.y+this.localPlazaNameOffset());
+  }
+  localPlazaNameOffset() {
+    return this.frameData.image && this.frameData.height===48 && this.frameData.width===48
+      ? PLAZA_NAME_OFFSET : this.frameData.height/2*this.player.scaleY+4;
   }
   placePlazaPlayer(slot) {
     this.x=GAME_WIDTH/2+(slot%4-1.5)*72;
@@ -184,8 +211,8 @@ export class Playground {
     this.notifyState();
   }
   plazaPose() {
-    if (!this.roomPreviousData || !this.player) return null;
-    return {x:Math.round(this.x),y:Math.round(this.y),action:this.animationType,flip:this.player.flipX};
+    if (!this.plazaDemo || !this.player) return null;
+    return {x:Math.round(this.x),y:Math.round(this.y),action:this.animationType,flip:this.facing==='left'};
   }
   showPlazaPlayer(id, pose) {
     this.plazaPlayers ??= new Map();
@@ -196,9 +223,9 @@ export class Playground {
       this.plazaPlayers.delete(id);
       return;
     }
-    if (!this.roomPreviousData) return;
-    const key='dotit-'+pose.action;
-    const info=this.frameData.animations[pose.action];
+    if (!this.plazaDemo) return;
+    const key='plaza-demo-'+pose.action;
+    const info=this.plazaDemo.data.animations[pose.action];
     if (!info) return;
     const x=Math.max(28,Math.min(GAME_WIDTH-28,pose.x));
     const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
