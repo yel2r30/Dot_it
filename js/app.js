@@ -219,11 +219,17 @@ function init() {
   $('applyButton').addEventListener('click',apply);
   $('previewLeft').addEventListener('click',()=>setPreviewFacing('left'));
   $('previewRight').addEventListener('click',()=>setPreviewFacing('right'));
+  $('gameMount').addEventListener('pointerdown',()=>{
+    // The game should regain keyboard input after editing frame numbers.
+    if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) document.activeElement.blur();
+  });
   $('sourceFacing').addEventListener('change',()=>{
     // Apply immediately to both the preview and the active sprite.
     const source=$('sourceFacing').value;
     setPreviewFacing(source);
     state.game.setSourceFacing(source);
+    // A focused SELECT blocks movement keys; release focus after the choice.
+    $('sourceFacing').blur();
     notice('원본 방향이 즉시 반영되었습니다. A/D 키로 반전을 확인해 보세요.');
   });
   for(const id of ids) $(id).addEventListener('input',()=>{
