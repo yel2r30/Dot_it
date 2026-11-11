@@ -32,10 +32,14 @@
         </label>
         <div class="file-meta"><span id="fileName">현재: 데모 캐릭터</span><button id="demoButton" type="button" class="text-button">데모 다시 불러오기</button></div>
 
-        <div class="section-title"><span>02</span> 프레임 크기</div>
+        <div class="section-title"><span>02</span> 기본 시트 프레임 크기</div>
         <div class="fields two">
           <label>가로 (px)<input id="frameWidth" type="number" min="8" max="256" step="1" value="32" inputmode="numeric"></label>
           <label>세로 (px)<input id="frameHeight" type="number" min="8" max="256" step="1" value="32" inputmode="numeric"></label>
+        </div>
+        <div class="fields two">
+          <label>기본 발 기준점 X<input id="anchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+          <label>기본 발 기준점 Y<input id="anchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
         </div>
         <div class="meta-strip"><span id="sheetSize">192 × 64 px</span><span id="frameTotal">12 frames</span></div>
         <div class="sheet-preview-wrap">
@@ -62,6 +66,17 @@
         </div>
         <div class="animation-fields" id="idleFields">
           <p class="field-context">IDLE · 움직이지 않을 때 반복 재생</p>
+          <details class="optional-animation-config">
+            <summary>이 동작의 별도 PNG 시트</summary>
+            <label>PNG 선택<input id="idleSheet" type="file" accept="image/png,.png"></label>
+            <div class="fields two" id="idleSheetGeometry" hidden>
+              <label>프레임 너비<input id="idleWidth" type="number" min="8" max="256" step="1"></label>
+              <label>프레임 높이<input id="idleHeight" type="number" min="8" max="256" step="1"></label>
+              <label>발 기준점 X<input id="idleAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+              <label>발 기준점 Y<input id="idleAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <button id="idleClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
+            </div>
+          </details>
           <div class="fields three">
             <label>시작 번호<input id="idleStart" type="number" min="0" step="1" value="0"></label>
             <label>프레임 수<input id="idleCount" type="number" min="1" max="24" step="1" value="4"></label>
@@ -70,6 +85,17 @@
         </div>
         <div class="animation-fields" id="walkFields" hidden>
           <p class="field-context">WALK · 이동 키를 누를 때 반복 재생</p>
+          <details class="optional-animation-config">
+            <summary>이 동작의 별도 PNG 시트</summary>
+            <label>PNG 선택<input id="walkSheet" type="file" accept="image/png,.png"></label>
+            <div class="fields two" id="walkSheetGeometry" hidden>
+              <label>프레임 너비<input id="walkWidth" type="number" min="8" max="256" step="1"></label>
+              <label>프레임 높이<input id="walkHeight" type="number" min="8" max="256" step="1"></label>
+              <label>발 기준점 X<input id="walkAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+              <label>발 기준점 Y<input id="walkAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <button id="walkClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
+            </div>
+          </details>
           <div class="fields three">
             <label>시작 번호<input id="walkStart" type="number" min="0" step="1" value="6"></label>
             <label>프레임 수<input id="walkCount" type="number" min="1" max="24" step="1" value="6"></label>
@@ -80,7 +106,18 @@
           <p class="field-context">SPECIAL IDLE · 대기 중 한 번 재생하고 IDLE로 복귀</p>
           <label class="optional-animation-toggle"><input id="specialEnabled" type="checkbox"><span>특별 IDLE 사용 <small>시트에 특별 대기 동작이 없다면 꺼 둬도 됩니다.</small></span></label>
           <div class="optional-animation-config" id="specialOptions" hidden>
-            <div class="fields three">
+            <details class="optional-animation-config">
+            <summary>이 동작의 별도 PNG 시트</summary>
+            <label>PNG 선택<input id="specialSheet" type="file" accept="image/png,.png"></label>
+            <div class="fields two" id="specialSheetGeometry" hidden>
+              <label>프레임 너비<input id="specialWidth" type="number" min="8" max="256" step="1"></label>
+              <label>프레임 높이<input id="specialHeight" type="number" min="8" max="256" step="1"></label>
+              <label>발 기준점 X<input id="specialAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+              <label>발 기준점 Y<input id="specialAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <button id="specialClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
+            </div>
+          </details>
+          <div class="fields three">
               <label>시작 번호<input id="specialStart" type="number" min="0" step="1" value="0"></label>
               <label>프레임 수<input id="specialCount" type="number" min="1" max="24" step="1" value="4"></label>
               <label>FPS<input id="specialFps" type="number" min="1" max="24" step="1" value="6"></label>
@@ -96,7 +133,18 @@
           <p class="field-context">ATTACK · J 키로 한 번 재생하고 이동/대기로 복귀</p>
           <label class="optional-animation-toggle"><input id="attackEnabled" type="checkbox"><span>공격 애니메이션 사용 <small>공격 시트가 없으면 비활성화해도 됩니다.</small></span></label>
           <div class="optional-animation-config" id="attackOptions" hidden>
-            <div class="fields three">
+            <details class="optional-animation-config">
+            <summary>이 동작의 별도 PNG 시트</summary>
+            <label>PNG 선택<input id="attackSheet" type="file" accept="image/png,.png"></label>
+            <div class="fields two" id="attackSheetGeometry" hidden>
+              <label>프레임 너비<input id="attackWidth" type="number" min="8" max="256" step="1"></label>
+              <label>프레임 높이<input id="attackHeight" type="number" min="8" max="256" step="1"></label>
+              <label>발 기준점 X<input id="attackAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+              <label>발 기준점 Y<input id="attackAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <button id="attackClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
+            </div>
+          </details>
+          <div class="fields three">
               <label>시작 번호<input id="attackStart" type="number" min="0" step="1" value="0"></label>
               <label>프레임 수<input id="attackCount" type="number" min="1" max="24" step="1" value="4"></label>
               <label>FPS<input id="attackFps" type="number" min="1" max="24" step="1" value="10"></label>
@@ -104,6 +152,7 @@
             <p class="field-context">공격 중 이동할 수 있으며 모션을 우선 재생합니다. J키 홀드 반복 공격은 없습니다.</p>
           </div>
         </div>
+        <p class="field-context">발 기준점은 프레임 왼쪽 위부터 잰 픽셀 좌표입니다. 시트가 달라도 캐릭터를 같은 픽셀 크기로 그리고, 각 프레임의 발 위치를 맞춰 주세요.</p>
         <div class="frame-timing-panel">
           <div class="timeline-title"><strong>애니메이션 타임라인</strong><span>UNITY-STYLE / DOPE SHEET</span></div>
           <label class="frame-timing-toggle">
@@ -183,6 +232,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=dev002-animations-2"></script>
+  <script type="module" src="./js/app.js?v=action-sheets-1"></script>
 </body>
 </html>
