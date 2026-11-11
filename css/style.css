@@ -8,15 +8,10 @@
 .direction-settings select{width:100%;padding:11px;border:1px solid #41505e;border-radius:7px;background:#0e1721;color:#f4f8fa;font:12px var(--mono);cursor:pointer}
 .direction-settings select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .direction-settings p{color:#90a7b5;font-size:11px;line-height:1.7;margin:0}
-.preview-directions{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
-.preview-directions button{font-size:10px;font-weight:700;color:#aabac6;background:#23313e;border:1px solid #4d6371;border-radius:5px;padding:7px 9px}
-.preview-directions button.active{color:#152211;background:var(--accent);border-color:var(--accent)}
 .stage-footer{flex-wrap:wrap}
 .status-card{flex:1}
-@media(max-width:620px){.preview-directions{gap:4px}.preview-directions button{padding:6px 7px}}
 
 /* Horizontal mirror feedback for the sprite editor. */
-.mirror-result{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--accent);line-height:1.4}
 .status-card strong{overflow-wrap:anywhere}
 
 /* Sheet previews must start at row 0. Flex centering previously clipped overflow above the scroll origin. */
