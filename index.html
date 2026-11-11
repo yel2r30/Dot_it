@@ -316,6 +316,11 @@
           <button id="saveCharacterButton" class="text-button" type="button">이 브라우저에 저장</button>
           <button id="loadCharacterButton" class="text-button" type="button">저장한 캐릭터 불러오기</button>
         </div>
+        <div class="file-meta">
+          <button id="exportCharacterButton" class="text-button" type="button">캐릭터 파일 내보내기</button>
+          <button id="importCharacterButton" class="text-button" type="button">캐릭터 파일 가져오기</button>
+          <input id="characterFile" type="file" accept=".json,application/json" hidden>
+        </div>
         <p class="inline-notice" id="notice" role="status" aria-live="polite">데모 캐릭터가 준비되었습니다.</p>
       </aside>
 
@@ -342,7 +347,7 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=local-save-1"></script>
+  <script type="module" src="./js/app.js?v=portable-save-1"></script>
   <script type="module" src="./js/google-account.js?v=1"></script>
 </body>
 </html>
