@@ -3,6 +3,8 @@ import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
 
+import { saveCharacter, loadCharacter } from './character-storage.js';
+
 const demoRanges = {idle:[0,6],special:[6,6],walk:[12,6],attack:[18,6],damage:[24,4],death:[30,6]};
 let imageLoad = 0;
 const $ = id => document.getElementById(id);
@@ -309,12 +311,91 @@ function resetOptionalAnimations(total) {
   $('specialLoop').checked=false;
 }
 
-function apply() {
+const savedFields = [...ids, 'sourceFacing', ...animationTypes.map(type=>type+'SourceFacing')];
+const savedChecks = ['specialLoop', ...optionalTypes.map(type=>type+'Enabled')];
+
+function encodeSheet(image) {
+  const canvas=document.createElement('canvas');
+  canvas.width=image.width;
+  canvas.height=image.height;
+  canvas.getContext('2d').drawImage(image,0,0);
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(blob=>blob ? resolve(blob) : reject(new Error('PNG로 저장할 수 없습니다.')), 'image/png');
+  });
+}
+
+async function captureCharacter() {
+  computeLayout();
+  const fields=Object.fromEntries(savedFields.map(id=>[id,$(id).value]));
+  const checks=Object.fromEntries(savedChecks.map(id=>[id,$(id).checked]));
+  const snapshot=structuredClone({version:1,name:state.fileName,fields,checks,timings,selectedFrames});
+  const [image,sheets]=await Promise.all([
+    encodeSheet(state.image),
+    Promise.all([...actionSheets].map(async ([type,{image,...settings}])=>[
+      type,{...structuredClone(settings),image:await encodeSheet(image)}
+    ]))
+  ]);
+  return {...snapshot,image,sheets};
+}
+
+async function restoreCharacter(saved, load) {
+  if (saved.version!==1) throw new Error('지원하지 않는 캐릭터 저장 형식입니다.');
+  const [image,sheets]=await Promise.all([
+    createImageBitmap(saved.image),
+    Promise.all(saved.sheets.map(async ([type,sheet])=>[type,{...sheet,image:await createImageBitmap(sheet.image)}]))
+  ]);
+  if (load!==imageLoad) return;
+  for (const type of animationTypes) clearActionSheet(type);
+  for (const id of savedFields) $(id).value=saved.fields[id] ?? '';
+  for (const id of savedChecks) $(id).checked=Boolean(saved.checks[id]);
+  for (const type of optionalTypes) $(type+'Options').hidden=!isEnabled(type);
+  $('specialRepeat').disabled=$('specialLoop').checked;
+  Object.assign(timings,saved.timings);
+  Object.assign(selectedFrames,saved.selectedFrames);
+  for (const [type,sheet] of sheets) {
+    actionSheets.set(type,sheet);
+    const geometry=$(type+'SheetGeometry');
+    geometry.hidden=false;
+    geometry.closest('details').open=true;
+  }
+  state.image=image;
+  state.fileName=saved.name;
+  $('spriteFile').value='';
+  $('fileName').textContent='현재: '+saved.name;
+  selectMode('idle');
+  apply('저장한 캐릭터를 불러왔습니다.');
+}
+
+async function handleCharacterStorage(save, startup=false) {
+  const buttons=[$('saveCharacterButton'),$('loadCharacterButton')];
+  buttons.forEach(button=>button.disabled=true);
+  const load=save ? imageLoad : ++imageLoad;
+  try {
+    if (save) {
+      await saveCharacter(await captureCharacter());
+      notice('이 브라우저에 캐릭터를 저장했습니다.');
+    } else {
+      const saved=await loadCharacter();
+      if (load!==imageLoad) return;
+      if (saved) await restoreCharacter(saved,load);
+      else if (startup) await useDemo();
+      else notice('이 브라우저에 저장된 캐릭터가 없습니다.');
+    }
+  } catch(error) {
+    if (startup && load===imageLoad) await useDemo();
+    if (!startup || load+1===imageLoad)
+      notice((save?'저장 실패: ':'불러오기 실패: ')+(error?.message||'브라우저 저장소에 접근할 수 없습니다.'),true);
+  } finally {
+    buttons.forEach(button=>button.disabled=false);
+  }
+}
+
+function apply(message='캐릭터에 적용했습니다! WASD 또는 방향키로 움직여 보세요.') {
   try {
     const data=computeLayout();
     state.game.install(data);
     $('activeCharacter').textContent=state.fileName;
-    notice('캐릭터에 적용했습니다! WASD 또는 방향키로 움직여 보세요.');
+    notice(message);
     drawSheet();
   } catch(e) { notice(e.message,true); }
 }
@@ -474,7 +555,9 @@ function init() {
     $('specialRepeat').disabled=event.target.checked;
     notice('특별 IDLE 설정이 변경되었습니다. 광장에 반영하려면 설정을 적용하세요.');
   });
-  $('applyButton').addEventListener('click',apply);
+  $('applyButton').addEventListener('click',()=>apply());
+  $('saveCharacterButton').addEventListener('click',()=>handleCharacterStorage(true));
+  $('loadCharacterButton').addEventListener('click',()=>handleCharacterStorage(false));
   $('perFrameToggle').addEventListener('change',ev=>{
     timings[state.selected].enabled=ev.target.checked;
     resetPreviewClock();
@@ -560,7 +643,7 @@ function init() {
       notice(index+'번부터 '+state.selected.toUpperCase()+' 프레임이 선택되었습니다. 적용하기를 눌러 반영하세요.');
     }catch(e){notice(e.message,true);}
   });
-  useDemo();
+  handleCharacterStorage(false,true);
   previewRequest=requestAnimationFrame(animatePreview);
 }
 init();
