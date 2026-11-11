@@ -337,6 +337,12 @@
           <div class="fields">
             <label>닉네임<input id="plazaNickname" type="text" maxlength="16" autocomplete="off" placeholder="1~16자" required></label>
           </div>
+          <label for="plazaCharacter">광장 캐릭터</label>
+          <select id="plazaCharacter">
+            <option value="current">현재 적용한 캐릭터</option>
+            <option value="saved">브라우저에 저장한 캐릭터</option>
+            <option value="demo">기본 데모</option>
+          </select>
           <div class="file-meta">
             <button id="plazaEnter" class="text-button" type="button">광장 입장</button>
             <button id="plazaLeave" class="text-button" type="button" disabled>광장 나가기</button>
@@ -372,7 +378,7 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=plaza-character-sharing-1"></script>
+  <script type="module" src="./js/app.js?v=plaza-character-choice-1"></script>
   <script type="module" src="./js/google-account.js?v=1"></script>
 </body>
 </html>
