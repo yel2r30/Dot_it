@@ -67,10 +67,9 @@ function refreshInspector() {
 function renderFrameTimes() {
   const type=state.selected;
   $('perFrameToggle').checked=timings[type].enabled;
-  $('frameTimingEditor').hidden=!isEnabled(type);
+  $('frameTimingEditor').hidden=!isEnabled(type)||!timings[type].enabled;
   $('perFrameToggle').disabled=!isEnabled(type);
-  if (!isEnabled(type)) return;
-  if(!state.timeline)return;
+  if ($('frameTimingEditor').hidden || !state.timeline) return;
   try {
     const data=computeLayout(type);
     const a=data.animations[type];
@@ -496,7 +495,7 @@ function init() {
     renderFrameTimes();syncPreviewInfo();
     notice(ev.target.checked
       ? '키프레임(◆)을 드래그하거나 선택한 프레임의 시간을 숫자로 조절해 보세요.'
-      : '전체 FPS 모드로 전환했습니다. 타임라인은 미리보기로 계속 사용할 수 있습니다.');
+      : '전체 FPS 모드로 전환했습니다.');
   });
   $('resetFrameTimes').addEventListener('click',()=>{
     const type=state.selected;
