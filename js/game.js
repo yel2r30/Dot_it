@@ -1,3 +1,5 @@
+import { drawTownSquare } from './town-square.js?v=1';
+
 // Dot_it DEV-001 — Phaser scene for the local player.
 const GAME_WIDTH = 960;
 const GAME_HEIGHT = 540;
@@ -164,6 +166,8 @@ export class Playground {
     const frames=[], animations=[];
     this.createAnimationAssets(demo,'plaza-demo-',frames,animations);
     this.plazaDemo={data:demo,frames,animations};
+    this.townSquare ??= drawTownSquare(this.scene,GAME_WIDTH,GAME_HEIGHT);
+    this.townSquare.setVisible(true);
     this.plazaCombat={hp:PLAZA_MAX_HP,sequence:0,nextAttackAt:0,flashMs:0};
     if (character && character!==this.frameData) {
       this.plazaPreviousData=this.frameData;
@@ -171,6 +175,7 @@ export class Playground {
     }
   }
   leavePublicPlaza() {
+    this.townSquare?.setVisible(false);
     this.plazaCombat=null;
     this.plazaName?.destroy();
     this.plazaName=null;
