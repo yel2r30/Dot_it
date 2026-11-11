@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=test-room-1';
+import { Playground } from './game.js?v=plaza-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
@@ -7,7 +7,10 @@ import { saveCharacter, loadCharacter } from './character-storage.js';
 
 import { setupTestRoom } from './test-room.js?v=1';
 
+import { setupPublicPlaza } from './public-plaza.js?v=1';
+
 let testRoom;
+let publicPlaza;
 const demoRanges = {idle:[0,6],special:[6,6],walk:[12,6],attack:[18,6],damage:[24,4],death:[30,6]};
 let imageLoad = 0;
 const $ = id => document.getElementById(id);
@@ -486,6 +489,7 @@ function apply(message='캐릭터에 적용했습니다! WASD 또는 방향키�
   try {
     const data=computeLayout();
     testRoom?.stop('캐릭터 설정을 적용하여 테스트 방에서 나왔습니다.');
+    publicPlaza?.stop('캐릭터 설정을 적용하여 공용 광장에서 나왔습니다.');
     state.game.install(data);
     $('activeCharacter').textContent=state.fileName;
     notice(message);
@@ -620,6 +624,7 @@ function init() {
     });
   } catch(e) {notice(e.message,true);return;}
   testRoom=setupTestRoom(state.game,createHumanDemo,demoRanges);
+  publicPlaza=setupPublicPlaza(state.game,createHumanDemo,demoRanges);
   $('spriteFile').addEventListener('change',ev=>handleFile(ev.target.files?.[0]));
   const zone=$('dropZone');
   ['dragenter','dragover'].forEach(type=>zone.addEventListener(type,ev=>{ev.preventDefault();zone.classList.add('drag-over');}));
