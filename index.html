@@ -144,8 +144,9 @@
             </div>
             <div class="fields two optional-extra-fields">
               <label>첫 발동 대기 (초)<input id="specialDelay" type="number" min="1" max="600" step="1" value="30"></label>
-              <label>재발동 간격 (초)<input id="specialRepeat" type="number" min="1" max="600" step="1" value="60"></label>
+              <label>재발동 간격 (초)<input id="specialRepeat" type="number" min="1" max="600" step="1" value="30"></label>
             </div>
+            <label class="optional-animation-toggle"><input id="specialLoop" type="checkbox"><span>입력할 때까지 반복 재생 <small>켜면 첫 대기 시간이 지난 뒤 움직이거나 다른 동작을 실행할 때까지 반복됩니다.</small></span></label>
             <p class="field-context">이동하거나 공격하면 즉시 취소됩니다.</p>
           </div>
         </div>
@@ -309,6 +310,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=human-demo-2"></script>
+  <script type="module" src="./js/app.js?v=special-loop-1"></script>
 </body>
 </html>
