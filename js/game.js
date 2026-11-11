@@ -131,6 +131,7 @@ export class Playground {
       frame.height/2-(frame.anchorY ?? frame.height))*this.player.scaleY;
     this.player.setFlipX(flipped);
     this.player.setPosition(this.x+(flipped?-offsetX:offsetX),this.y+offsetY);
+    this.plazaName?.setPosition(this.x,this.y+10);
   }
   notifyState() {
     if (!this.player) return;
@@ -153,12 +154,24 @@ export class Playground {
   }
   leaveTestRoom() {
     this.showRoomPlayer(null);
+    this.plazaName?.destroy();
+    this.plazaName=null;
     for (const key of this.plazaPlayers?.keys() ?? []) this.showPlazaPlayer(key,null);
     if (this.roomPreviousData) {
       const previous=this.roomPreviousData;
       this.roomPreviousData=null;
       this.install(previous);
     }
+  }
+  createPlazaName(x, y, nickname) {
+    return this.scene.add.text(x,y+10,nickname,{
+      fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#fff',
+      backgroundColor:'#15242e',padding:{x:4,y:2}
+    }).setOrigin(.5,0).setDepth(3);
+  }
+  setPlazaNickname(nickname) {
+    this.plazaName?.destroy();
+    this.plazaName=this.createPlazaName(this.x,this.y,nickname);
   }
   placePlazaPlayer(slot) {
     this.x=GAME_WIDTH/2+(slot%4-1.5)*72;
@@ -185,10 +198,12 @@ export class Playground {
     if (!info) return;
     const x=Math.max(28,Math.min(GAME_WIDTH-28,pose.x));
     const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
+    const nickname=typeof pose.nickname==='string'
+      ? pose.nickname.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu,'').trim().slice(0,16) || '상대'
+      : '상대';
     if (!remote) {
       const sprite=this.scene.add.sprite(x,y,key+'-frame-'+info.start).setScale(2).setDepth(1);
-      const label=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff',backgroundColor:'#15242e'})
-        .setOrigin(.5,1).setDepth(3);
+      const label=this.createPlazaName(x,y,nickname);
       remote={sprite,label};
       this.plazaPlayers.set(id,remote);
     }
@@ -198,7 +213,8 @@ export class Playground {
       remote.session=pose.session;
     }
     remote.sprite.setFlipX(pose.flip).setPosition(x,y);
-    remote.label.setPosition(x,y-52);
+    if (remote.label.text!==nickname) remote.label.setText(nickname);
+    remote.label.setPosition(x,y+10);
   }
   roomPose() {
     const match=this.player?.texture?.key?.match(/^dotit-(\w+)-frame-(\d+)$/);
