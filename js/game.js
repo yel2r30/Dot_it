@@ -1,4 +1,4 @@
-import { drawTownSquare } from './town-square.js?v=1';
+import { drawTownSquare, drawMoonGarden } from './town-square.js?v=2';
 
 // Dot_it DEV-001 — Phaser scene for the local player.
 const GAME_WIDTH = 960;
@@ -196,8 +196,11 @@ export class Playground {
     this.checkRoomAvailability();
     this.roomPreviousData=this.frameData;
     this.install(this.roomDemoData(image,ranges));
+    this.moonGarden ??= drawMoonGarden(this.scene,GAME_WIDTH,GAME_HEIGHT);
+    this.moonGarden.setVisible(true);
   }
   leaveTestRoom() {
+    this.moonGarden?.setVisible(false);
     this.showRoomPlayer(null);
     if (this.roomPreviousData) {
       const previous=this.roomPreviousData;
