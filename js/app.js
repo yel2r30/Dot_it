@@ -260,7 +260,7 @@ function animatePreview(timestamp) {
   const a=data.animations[state.selected];
   const durations=animationDurations(a);
   const total=durations.reduce((sum,d)=>sum+d,0);
-  const elapsed=lastPreviewTime?Math.min(200,Math.max(0,timestamp-lastPreviewTime)):0;
+  const elapsed=lastPreviewTime?Math.min(1000,Math.max(0,timestamp-lastPreviewTime)):0;
   lastPreviewTime=timestamp;
   if(previewPlaying)previewTime=(previewTime+elapsed)%total;
   else previewTime=Math.max(0,Math.min(previewTime,total-1));
