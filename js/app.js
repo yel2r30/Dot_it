@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=plaza-5';
+import { Playground } from './game.js?v=plaza-6';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
@@ -7,7 +7,7 @@ import { saveCharacter, loadCharacter } from './character-storage.js';
 
 import { setupTestRoom } from './test-room.js?v=1';
 
-import { setupPublicPlaza } from './public-plaza.js?v=7';
+import { setupPublicPlaza } from './public-plaza.js?v=8';
 
 let testRoom;
 let publicPlaza;
