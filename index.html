@@ -311,6 +311,10 @@
           </div>
         </div>
         <button id="applyButton" class="primary-button" type="button">↗ 캐릭터에 설정 적용하기</button>
+        <div class="file-meta">
+          <button id="saveCharacterButton" class="text-button" type="button">이 브라우저에 저장</button>
+          <button id="loadCharacterButton" class="text-button" type="button">저장한 캐릭터 불러오기</button>
+        </div>
         <p class="inline-notice" id="notice" role="status" aria-live="polite">데모 캐릭터가 준비되었습니다.</p>
       </aside>
 
@@ -331,12 +335,12 @@
           <div><p class="eyebrow">CONTROLS</p><strong>캐릭터 이동</strong></div>
           <div class="key-hints"><span class="keycap">J</span><span class="or">공격 ·</span><span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span><span class="or">또는</span><span class="keycap">↑</span><span class="keycap">←</span><span class="keycap">↓</span><span class="keycap">→</span></div>
         </div>
-        <div class="next-step"><span class="next-step-icon">✦</span><div><strong>다음 업데이트</strong><p>이번 단계에서는 공격과 특별 IDLE까지 지원합니다. 계정 저장과 실시간 멀티플레이는 이후 단계에서 추가됩니다.</p></div></div>
+        <div class="next-step"><span class="next-step-icon">✦</span><div><strong>다음 업데이트</strong><p>현재 브라우저에 캐릭터 한 개를 저장할 수 있습니다. 다시 저장하면 이전 캐릭터를 덮어씁니다.</p></div></div>
       </section>
     </main>
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=df-demo-2"></script>
+  <script type="module" src="./js/app.js?v=local-save-1"></script>
 </body>
 </html>
