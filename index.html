@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10161d">
+  <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
+  <title>Dot_it | Pixel Character Playground</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Dot_it 홈"><span class="brand-symbol" aria-hidden="true">▦</span><span>Dot<span class="brand-accent">_</span>it</span></a>
+      <div class="topbar-right"><span class="edition">PIXEL CHARACTER PLAYGROUND</span><span class="build-pill"><span class="signal-dot"></span> DEV-001 · LOCAL</span></div>
+    </header>
+
+    <main class="workspace">
+      <aside class="editor panel" aria-labelledby="editor-title">
+        <div class="panel-heading">
+          <div><p class="eyebrow">01 / SPRITE WORKSHOP</p><h1 id="editor-title">내 캐릭터 만들기</h1></div>
+          <span class="step-token">EDIT</span>
+        </div>
+        <p class="lead">PNG 시트를 넣고 IDLE과 WALK의 프레임을 지정해 보세요.</p>
+
+        <div class="section-title"><span>01</span> 스프라이트 업로드</div>
+        <input id="spriteFile" class="visually-hidden" type="file" accept=".png,image/png" aria-describedby="upload-hint">
+        <label for="spriteFile" id="dropZone" class="upload-zone">
+          <span class="upload-icon" aria-hidden="true">↥</span>
+          <strong>PNG 파일을 선택하거나 끌어놓기</strong>
+          <span id="upload-hint">투명 PNG 권장 · 최대 2MB · 2048 × 2048px</span>
+        </label>
+        <div class="file-meta"><span id="fileName">현재: 데모 캐릭터</span><button id="demoButton" type="button" class="text-button">데모 다시 불러오기</button></div>
+
+        <div class="section-title"><span>02</span> 프레임 크기</div>
+        <div class="fields two">
+          <label>가로 (px)<input id="frameWidth" type="number" min="8" max="256" step="1" value="32" inputmode="numeric"></label>
+          <label>세로 (px)<input id="frameHeight" type="number" min="8" max="256" step="1" value="32" inputmode="numeric"></label>
+        </div>
+        <div class="meta-strip"><span id="sheetSize">192 × 64 px</span><span id="frameTotal">12 frames</span></div>
+        <div class="sheet-preview-wrap">
+          <div class="preview-heading"><strong>시트 미리보기</strong><span>칸을 누르면 시작 프레임 선택</span></div>
+          <div class="sheet-scroll"><canvas id="sheetCanvas" width="192" height="64" aria-label="스프라이트 시트 격자 미리보기"></canvas></div>
+        </div>
+
+        <div class="section-title"><span>03</span> 애니메이션 지정</div>
+        <div class="mode-tabs" role="group" aria-label="편집할 애니메이션">
+          <button id="idleTab" class="mode-tab active" type="button" aria-pressed="true">IDLE <span>대기</span></button>
+          <button id="walkTab" class="mode-tab" type="button" aria-pressed="false">WALK <span>걷기</span></button>
+        </div>
+        <div class="animation-fields" id="idleFields">
+          <p class="field-context">IDLE · 움직이지 않을 때 반복 재생</p>
+          <div class="fields three">
+            <label>시작 번호<input id="idleStart" type="number" min="0" step="1" value="0"></label>
+            <label>프레임 수<input id="idleCount" type="number" min="1" max="24" step="1" value="4"></label>
+            <label>FPS<input id="idleFps" type="number" min="1" max="24" step="1" value="4"></label>
+          </div>
+        </div>
+        <div class="animation-fields" id="walkFields" hidden>
+          <p class="field-context">WALK · 이동 키를 누를 때 반복 재생</p>
+          <div class="fields three">
+            <label>시작 번호<input id="walkStart" type="number" min="0" step="1" value="6"></label>
+            <label>프레임 수<input id="walkCount" type="number" min="1" max="24" step="1" value="6"></label>
+            <label>FPS<input id="walkFps" type="number" min="1" max="24" step="1" value="8"></label>
+          </div>
+        </div>
+        <div class="anim-preview-area">
+          <canvas id="animCanvas" width="160" height="160" aria-label="선택한 애니메이션 미리보기"></canvas>
+          <div class="anim-preview-copy"><span class="eyebrow">LIVE PREVIEW</span><strong id="previewTitle">IDLE</strong><span id="previewInfo">4 frames · 4 FPS</span><small>설정을 바꾸면 여기에서 바로 확인할 수 있어요.</small></div>
+        </div>
+        <button id="applyButton" class="primary-button" type="button">↗ 캐릭터에 설정 적용하기</button>
+        <p class="inline-notice" id="notice" role="status" aria-live="polite">데모 캐릭터가 준비되었습니다.</p>
+      </aside>
+
+      <section class="play-area panel" aria-labelledby="stage-title">
+        <div class="panel-heading stage-heading">
+          <div><p class="eyebrow">02 / LIVE PLAYGROUND</p><h2 id="stage-title">픽셀 광장</h2></div>
+          <span class="stage-tag"><span class="signal-dot"></span> 1 PLAYER</span>
+        </div>
+        <p class="stage-description">왼쪽에서 만든 캐릭터가 이곳에 등장해요. 걷다가 멈추면 IDLE로 전환됩니다.</p>
+        <div class="stage-frame"><div id="gameMount" class="game-mount" aria-label="캐릭터 조작용 게임 화면"></div><div class="stage-corner stage-corner-tl"></div><div class="stage-corner stage-corner-br"></div></div>
+        <div class="stage-footer">
+          <div class="player-card"><span class="avatar-mark">◆</span><div><small>ACTIVE CHARACTER</small><strong id="activeCharacter">DEMO / Penguin</strong></div></div>
+          <div class="status-card"><small>CURRENT STATE</small><strong id="movementStatus">IDLE</strong></div>
+          <div class="status-card"><small>POSITION</small><strong id="positionStatus">480, 280</strong></div>
+        </div>
+        <div class="control-panel">
+          <div><p class="eyebrow">CONTROLS</p><strong>캐릭터 이동</strong></div>
+          <div class="key-hints"><span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span><span class="or">또는</span><span class="keycap">↑</span><span class="keycap">←</span><span class="keycap">↓</span><span class="keycap">→</span></div>
+        </div>
+        <div class="next-step"><span class="next-step-icon">✦</span><div><strong>다음 업데이트</strong><p>공격 · 특별 IDLE · 계정 저장 · 실시간 멀티플레이는 이후 단계에서 추가됩니다.</p></div></div>
+      </section>
+    </main>
+    <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-001 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
