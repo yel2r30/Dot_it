@@ -2,7 +2,9 @@
 const GAME_WIDTH = 960;
 const GAME_HEIGHT = 540;
 const PLAZA_NAME_OFFSET = 36;
-const PLAZA_MOVE_MS = 200;
+const PLAZA_PREDICTION_MS = 260;
+const PLAZA_POSITION_SMOOTH_MS = 75;
+const PLAYER_SPEED = 140;
 export class Playground {
   constructor(mount, onUpdate) {
     if (!window.Phaser) throw new Error('게임 엔진을 불러오지 못했습니다. 인터넷 연결 후 새로고침해 주세요.');
@@ -206,7 +208,7 @@ export class Playground {
     if (!remote) {
       const sprite=this.scene.add.sprite(x,y,key+'-frame-'+info.start).setScale(2).setDepth(1);
       const label=this.createPlazaName(x,y,nickname);
-      remote={sprite,label,targetX:x,targetY:y,moveTime:PLAZA_MOVE_MS};
+      remote={sprite,label,targetX:x,targetY:y,vx:0,vy:0,age:0};
       this.plazaPlayers.set(id,remote);
     }
     if (remote.action!==pose.action || remote.session!==pose.session) {
@@ -216,21 +218,35 @@ export class Playground {
     }
     remote.sprite.setFlipX(pose.flip);
     if (remote.label.text!==nickname) remote.label.setText(nickname);
-    if (remote.targetX!==x || remote.targetY!==y) {
-      remote.startX=remote.sprite.x;
-      remote.startY=remote.sprite.y;
+    const receivedAt=Number.isFinite(pose.at) ? pose.at : Date.now();
+    const changedSession=remote.sampleSession!==pose.session;
+    if (changedSession) {
+      remote.sprite.setPosition(x,y);
+      remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
+    }
+    if (changedSession || receivedAt>= (remote.sampleAt ?? 0)) {
+      const elapsed=Math.max(50,receivedAt-(remote.sampleAt ?? receivedAt));
+      const dx=x-remote.targetX,dy=y-remote.targetY;
+      const distance=Math.hypot(dx,dy);
+      const speed=changedSession || pose.action!=='walk' ? 0 : Math.min(PLAYER_SPEED/1000,distance/elapsed);
+      remote.vx=distance ? dx/distance*speed : 0;
+      remote.vy=distance ? dy/distance*speed : 0;
       remote.targetX=x;
       remote.targetY=y;
-      remote.moveTime=0;
+      remote.sampleAt=receivedAt;
+      remote.sampleSession=pose.session;
+      remote.age=0;
     }
   }
   updatePlazaPlayers(dt) {
+    const blend=1-Math.exp(-dt/PLAZA_POSITION_SMOOTH_MS);
     for (const remote of this.plazaPlayers?.values() ?? []) {
-      if (remote.moveTime>=PLAZA_MOVE_MS) continue;
-      remote.moveTime=Math.min(PLAZA_MOVE_MS,remote.moveTime+dt);
-      const t=remote.moveTime/PLAZA_MOVE_MS;
-      const x=remote.startX+(remote.targetX-remote.startX)*t;
-      const y=remote.startY+(remote.targetY-remote.startY)*t;
+      remote.age=Math.min(remote.age+dt,PLAZA_PREDICTION_MS);
+      const targetX=Math.max(28,Math.min(GAME_WIDTH-28,remote.targetX+remote.vx*remote.age));
+      const targetY=Math.max(28,Math.min(GAME_HEIGHT-62,remote.targetY+remote.vy*remote.age));
+      const dx=targetX-remote.sprite.x,dy=targetY-remote.sprite.y;
+      const x=Math.abs(dx)<.1 ? targetX : remote.sprite.x+dx*blend;
+      const y=Math.abs(dy)<.1 ? targetY : remote.sprite.y+dy*blend;
       remote.sprite.setPosition(x,y);
       remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
     }
@@ -320,7 +336,7 @@ export class Playground {
     this.moving=moving;
     if (moving) {
       const length=Math.hypot(dx,dy);
-      const speed=140*Math.min(dt,50)/1000;
+      const speed=PLAYER_SPEED*Math.min(dt,50)/1000;
       this.x=Math.max(28,Math.min(GAME_WIDTH-28,this.x+dx/length*speed));
       this.y=Math.max(28,Math.min(GAME_HEIGHT-62,this.y+dy/length*speed));
       if(dx)this.setFacing(dx<0?'left':'right');
