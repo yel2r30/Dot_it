@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=dev002-animations-1';
+import { Playground } from './game.js?v=action-sheets-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 const $ = id => document.getElementById(id);
@@ -6,9 +6,10 @@ const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_DIMENSION = 2048;
 const animationTypes = ['idle', 'walk', 'special', 'attack'];
 const optionalTypes = ['special', 'attack'];
-const ids = ['frameWidth', 'frameHeight', 'specialDelay', 'specialRepeat',
-  ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps'].map(field => type + field))];
+const ids = ['frameWidth', 'frameHeight', 'anchorX', 'anchorY', 'specialDelay', 'specialRepeat',
+  ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps', 'Width', 'Height', 'AnchorX', 'AnchorY'].map(field => type + field))];
 const state = { image: null, fileName: 'DEMO / Penguin', selected: 'idle', game: null, timeline: null };
+const actionSheets = new Map();
 const timings = Object.fromEntries(animationTypes.map(type => [type, { enabled: false, values: {} }]));
 const selectedFrames = Object.fromEntries(animationTypes.map(type => [type, 0]));
 
@@ -171,16 +172,37 @@ function resetSheetViewport() {
   viewport.scrollTop=0;
   viewport.scrollLeft=0;
 }
+function sheetSettings(type) {
+  const custom = actionSheets.get(type);
+  const width = Number($(custom ? type+'Width' : 'frameWidth').value);
+  const height = Number($(custom ? type+'Height' : 'frameHeight').value);
+  const x = $(custom ? type+'AnchorX' : 'anchorX').value;
+  const y = $(custom ? type+'AnchorY' : 'anchorY').value;
+  return {image:custom?.image ?? state.image, width, height,
+    anchorX:x==='' ? width/2 : Number(x), anchorY:y==='' ? height : Number(y)};
+}
+function sheetLayout(type) {
+  const sheet = sheetSettings(type);
+  const {image, width, height, anchorX, anchorY} = sheet;
+  if (!image) throw new Error('이미지를 먼저 업로드해 주세요.');
+  if (![width,height].every(n=>Number.isInteger(n)&&n>=8&&n<=256))
+    throw new Error('프레임 크기는 8~256px 사이의 정수여야 합니다.');
+  if (image.width%width || image.height%height)
+    throw new Error('시트 크기가 프레임 크기로 정확히 나누어져야 합니다.');
+  const columns=image.width/width, rows=image.height/height, total=columns*rows;
+  if (total>512) throw new Error('프레임 수는 512개 이하로 설정해 주세요.');
+  if (![anchorX,anchorY].every(Number.isFinite) || anchorX<0 || anchorX>width || anchorY<0 || anchorY>height)
+    throw new Error('발 기준점은 프레임 범위 안에 있어야 합니다.');
+  return {...sheet,columns,rows,total};
+}
 function computeLayout(onlyType) {
-  if(!state.image) throw new Error('이미지를 먼저 업로드해 주세요.');
-  const w=Number($('frameWidth').value),h=Number($('frameHeight').value);
-  if(!Number.isInteger(w)||!Number.isInteger(h)||w<8||h<8||w>256||h>256) throw new Error('프레임 크기는 8~256px 사이의 정수여야 합니다.');
-  if(state.image.width%w!==0||state.image.height%h!==0) throw new Error('시트 크기가 프레임 크기로 정확히 나누어져야 합니다.');
-  const cols=state.image.width/w,rows=state.image.height/h,total=cols*rows;
-  if(total>512) throw new Error('프레임 수는 512개 이하로 설정해 주세요.');
   const animations={};
   for(const kind of onlyType ? [onlyType] : animationTypes) {
     if(!isEnabled(kind)) continue;
+    let sheet;
+    try { sheet=sheetLayout(kind); }
+    catch (error) { throw new Error(kind.toUpperCase()+' · '+error.message); }
+    const {total}=sheet;
     const start=Number($(kind+'Start').value),count=Number($(kind+'Count').value),fps=Number($(kind+'Fps').value);
     if(![start,count,fps].every(Number.isInteger)||start<0||count<1||count>24||fps<1||fps>24||start+count>total)
       throw new Error(kind.toUpperCase()+' 설정을 확인해 주세요. 시작 번호와 프레임 수는 전체 '+total+'칸 안에 있어야 하고, FPS는 1~24입니다.');
@@ -190,11 +212,11 @@ function computeLayout(onlyType) {
       : null;
     if(perFrame&&!durations.every(v=>Number.isInteger(v)&&v>=20&&v<=3000))
       throw new Error(kind.toUpperCase()+' 프레임별 시간은 20~3000ms 사이의 정수여야 합니다.');
-    animations[kind]={start,count,fps,perFrame,durations};
+    animations[kind]={...sheet,start,count,fps,perFrame,durations};
   }
   const sourceFacing=$('sourceFacing').value;
   if(!['left','right'].includes(sourceFacing))throw new Error('원본 방향을 선택해 주세요.');
-  const data = {image:state.image,width:w,height:h,columns:cols,rows,total,animations,sourceFacing};
+  const data = {...sheetSettings(),...animations[onlyType],animations,sourceFacing};
   if (!onlyType && animations.special) {
     for (const [id, property] of [['specialDelay', 'specialDelayMs'], ['specialRepeat', 'specialRepeatMs']]) {
       const seconds = Number($(id).value);
@@ -207,17 +229,17 @@ function computeLayout(onlyType) {
 }
 function drawSheet() {
   const canvas=$('sheetCanvas'),g=canvas.getContext('2d');
-  if(!state.image) return;
-  const w=Number($('frameWidth').value),h=Number($('frameHeight').value);
-  const valid=Number.isInteger(w)&&Number.isInteger(h)&&w>=8&&h>=8&&state.image.width%w===0&&state.image.height%h===0;
-  $('sheetSize').textContent=state.image.width+' × '+state.image.height+' px';
-  const columns=valid?state.image.width/w:0,rows=valid?state.image.height/h:0,total=columns*rows;
+  const {image,width:w,height:h}=sheetSettings(state.selected);
+  if (!image) return;
+  const valid=Number.isInteger(w)&&Number.isInteger(h)&&w>=8&&h>=8&&w<=256&&h<=256&&image.width%w===0&&image.height%h===0;
+  $('sheetSize').textContent=(actionSheets.has(state.selected)?'별도 시트 · ':'기본 시트 · ')+image.width+' × '+image.height+' px';
+  const columns=valid?image.width/w:0,rows=valid?image.height/h:0,total=columns*rows;
   $('frameTotal').textContent=valid?total+' frames':'크기 확인 필요';
-  const zoom=Math.min(4,Math.max(1,Math.floor(720/state.image.width)));
-  canvas.width=state.image.width*zoom;canvas.height=state.image.height*zoom;
+  const zoom=Math.min(4,Math.max(1,Math.floor(720/image.width)));
+  canvas.width=image.width*zoom;canvas.height=image.height*zoom;
   canvas.dataset.zoom=String(zoom);
   g.imageSmoothingEnabled=false;
-  g.drawImage(state.image,0,0,canvas.width,canvas.height);
+  g.drawImage(image,0,0,canvas.width,canvas.height);
   if(!valid)return;
   let start=Number($(state.selected+'Start').value),count=Number($(state.selected+'Count').value);
   if(!Number.isFinite(start))start=-1;
@@ -269,7 +291,7 @@ function selectMode(mode) {
     $(type+'Fields').hidden=type!==mode;
   }
   resetPreviewClock();
-  syncPreviewInfo();drawSheet();renderFrameTimes();
+  syncPreviewInfo();drawSheet();resetSheetViewport();renderFrameTimes();
 }
 function animatePreview(timestamp) {
   previewRequest=requestAnimationFrame(animatePreview);
@@ -297,13 +319,21 @@ function animatePreview(timestamp) {
   $('timelineTimeLabel').textContent=Math.round(previewTime)+' / '+Math.round(total)+'ms';
   state.timeline?.setPlayhead(previewTime);
   const column=frame%data.columns,row=Math.floor(frame/data.columns);
-  const scale=Math.min(4,Math.max(1,Math.floor(130/Math.max(data.width,data.height))));
-  const renderW=data.width*scale,renderH=data.height*scale;
+  // Keep one preview scale and anchor across all enabled actions, including mirrored frames.
+  const sheets=animationTypes.filter(isEnabled).map(sheetSettings).filter(sheet=>
+    sheet.width>=8 && sheet.width<=256 && sheet.height>=8 && sheet.height<=256 &&
+    sheet.anchorX>=0 && sheet.anchorX<=sheet.width && sheet.anchorY>=0 && sheet.anchorY<=sheet.height);
+  const side=Math.max(...sheets.map(sheet=>Math.max(sheet.anchorX,sheet.width-sheet.anchorX)));
+  const above=Math.max(...sheets.map(sheet=>sheet.anchorY));
+  const below=Math.max(...sheets.map(sheet=>sheet.height-sheet.anchorY));
+  const scale=Math.min(4,(c.width-12)/(2*side),(c.height-12)/(above+below));
+  const footY=(c.height+(above-below)*scale)/2;
   g.imageSmoothingEnabled=false;
   g.save();
-  if(previewFacing!==data.sourceFacing){g.translate(c.width,0);g.scale(-1,1);}
+  g.translate(c.width/2,footY);
+  if(previewFacing!==data.sourceFacing)g.scale(-1,1);
   g.drawImage(data.image,column*data.width,row*data.height,data.width,data.height,
-    (c.width-renderW)/2,(c.height-renderH)/2,renderW,renderH);
+    -data.anchorX*scale,-data.anchorY*scale,data.width*scale,data.height*scale);
   g.restore();
 }
 function resetOptionalAnimations(total) {
@@ -336,22 +366,78 @@ function apply() {
   } catch(e) { notice(e.message,true); }
 }
 function useDemo() {
+  for (const type of animationTypes) clearActionSheet(type);
+  $('anchorX').value='';
+  $('anchorY').value='';
   state.image=createDemo();state.fileName='DEMO / Penguin';
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
   resetTimingSettings();resetOptionalAnimations(12);resetDefaults(true);selectMode('idle');resetSheetViewport();apply();
 }
-async function handleFile(file) {
-  if(!file)return;
-  if(file.type!=='image/png'&&!/\.png$/i.test(file.name)) return notice('PNG 파일만 지원합니다.',true);
-  if(file.size>MAX_BYTES)return notice('파일 크기는 2MB 이하여야 합니다.',true);
-  let url;
+async function readPng(file) {
+  if(file.type!=='image/png'&&!/\.png$/i.test(file.name)) throw new Error('PNG 파일만 지원합니다.');
+  if(file.size>MAX_BYTES) throw new Error('파일 크기는 2MB 이하여야 합니다.');
+  const url=URL.createObjectURL(file);
   try {
-    url=URL.createObjectURL(file);
     const img=new Image();
     img.src=url;
     await img.decode();
     if(img.width>MAX_DIMENSION||img.height>MAX_DIMENSION||!img.width||!img.height)
       throw new Error('이미지 크기는 최대 2048 × 2048px입니다.');
+    return img;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+function clearActionSheet(type) {
+  const previous=actionSheets.get(type);
+  actionSheets.delete(type);
+  $(type+'Sheet').value='';
+  $(type+'SheetGeometry').hidden=true;
+  if (previous?.baseRange) {
+    $(type+'Start').value=previous.baseRange.start;
+    $(type+'Count').value=previous.baseRange.count;
+    Object.assign(timings[type],previous.baseTiming);
+    selectedFrames[type]=previous.baseSelection;
+  }
+}
+async function loadActionSheet(type, input) {
+  const file=input.files[0];
+  if (!file) return;
+  try {
+    const image=await readPng(file);
+    if (input.files[0]!==file) return;
+    const previous=actionSheets.get(type);
+    actionSheets.set(type,{image,
+      baseRange:previous?.baseRange ?? {start:$(type+'Start').value,count:$(type+'Count').value},
+      baseTiming:previous?.baseTiming ?? {...timings[type]},
+      baseSelection:previous?.baseSelection ?? selectedFrames[type]});
+    const size=suggestFrameSize(image);
+    const width=size ?? Math.min(image.width,256);
+    const height=size ?? Math.min(image.height,256);
+    $(type+'Width').value=width;
+    $(type+'Height').value=height;
+    $(type+'AnchorX').value='';
+    $(type+'AnchorY').value='';
+    $(type+'Start').value='0';
+    $(type+'Count').value=Math.max(1,Math.min(4,Math.floor(image.width/width)*Math.floor(image.height/height)));
+    timings[type].values={};
+    selectedFrames[type]=0;
+    $(type+'SheetGeometry').hidden=false;
+    if (state.selected===type) selectMode(type);
+    notice('별도 시트를 불러왔습니다. 프레임 크기와 발 기준점을 확인한 뒤 설정을 적용하세요.');
+  } catch (error) {
+    if (input.files[0]!==file) return;
+    input.value='';
+    notice(error.message,true);
+  }
+}
+async function handleFile(file) {
+  if (!file) return;
+  try {
+    const img=await readPng(file);
+    for (const type of animationTypes) clearActionSheet(type);
+    $('anchorX').value='';
+    $('anchorY').value='';
     state.image=img;
     state.fileName=file.name.replace(/\.png$/i,'');
     $('fileName').textContent='현재: '+file.name;
@@ -364,7 +450,6 @@ async function handleFile(file) {
     resetSheetViewport();
     notice('시트를 불러왔습니다. '+(dims?'프레임 크기 '+dims+'×'+dims+'px를 임시 설정했습니다. ':'')+'원본 방향과 애니메이션 범위를 확인하세요.');
   } catch(e) { notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
-  finally { if(url)URL.revokeObjectURL(url); }
 }
 function init() {
   try {
@@ -382,6 +467,12 @@ function init() {
   $('demoButton').addEventListener('click',useDemo);
   for (const type of animationTypes) {
     $(type+'Tab').addEventListener('click',()=>selectMode(type));
+    $(type+'Sheet').addEventListener('change',event=>loadActionSheet(type,event.target));
+    $(type+'ClearSheet').addEventListener('click',()=>{
+      clearActionSheet(type);
+      selectMode(type);
+      notice('기본 시트로 돌아갔습니다. 광장에 반영하려면 설정을 적용하세요.');
+    });
   }
   for (const type of optionalTypes) {
     $(type+'Enabled').addEventListener('change',event=>{
