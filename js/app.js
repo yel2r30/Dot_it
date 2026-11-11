@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=plaza-10';
+import { Playground } from './game.js?v=plaza-11';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
