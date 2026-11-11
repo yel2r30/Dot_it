@@ -7,7 +7,7 @@
   <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
   <link rel="icon" type="image/png" sizes="64x64" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEm0lEQVR4nO1ZPWgUQRidPdZSEbHQ4kADYpEIIgqCaCGmENIkVgoaCYL/oKAoVjYKYiOoiRaGaGGnggQsEi0MiqKIoilEiEIKLYIEwcpi5Y15x5dxZnb2suZWnQfL3uzO3u173898941SEREREREREREREREREf8fElVh9HX1ZK57g8N3S3n3VFUQ9aV1TfzQwYO+aVkZYqSqgsSXL1umxyvbVzvnXrxySX0cf89h1qwQiaoQ8W2bO9X4h7eq/8L5WeQXLVnsfPbb12l9hhj9AwOFRUhUBciDOADyxIPhO17iLiFOHjlWSISaqgB5SRyAB0hSIYBYOBAavuRZGQ+oe8jD/YtY38SbsefB4VBT/yB8ybMSAtRzXL+o+3M+n4H3YAkNCYWaagF5LHMmeZv1pAiSoAlcxyqAg3NCvaCmWkC+fdUafbisL5MaY5prvk0E3Ovu7dMH54V6QWp7STmenJosNVGCuM/1AZkAQR7EgNcvn8yyOC2N+xMT46qtrV0tzL6ricePVNuWrUFekNosxBcFRsdGsjKEkOu9C/KFQQLo3nu0QQ6YevdKn6/euK/Ph/ft1Gfel88v7VjHcjpzrQipeeHzly+6FKWV+NIQolkRbEmvY0Vdvfs0+dtcEJwyrpEcPAP3dp8+1/Ck7t4RLRBJS4QspTU5AMHOjRu0CDgAKQSImCESiuTHtHry9KEmjgPg+dCpM87nRocua4IkCdfW18dG9DvyurwnP+eFQWq7eO/moD4z9gjpDTiHeAQEg6jXbw/p8akDexr3Lly71RDBBUmKgJBF5vvCILF9CTKn/LdFISz5IVcECOByUYpA4DfnUgE2UxmmtgdmJmZ8KZ9H+LyB1geYmfnZJP8ngNUCgvrCIMn7EtMbKITNG0whaH1Jnti/a+9v4QDgt4CyPQG/FxwCJlhMFAkLkEcCA0zLA1iiuKSVHQ60vPzsCoM05AvFQ9obgJCwIHkSB2nixPGzjdVBAksjsvva9Zt04dOMCCZ5nF1hkBb5YjM3+IQwEx/Jb+/aMasMBmGMIYSsC2TVlyeCaw7Jl9oTHBTeIMPCJgSrMZAmSN4sh7MFIPDL+ibyRCBROSdEuDk1RX1C6Nr88SNdsbmIyzGvkTytX9TyNtJ5XpCqOcLMD4hdJD8befnZJE3Iyi4vudmI2hLgvLTFB0V+IHnzL6+NOEMnrw1m9gYAl7XNuT4vSNQf/M9vi3WTOGBmaFsWN+ESS86V/YRClWDZ5KWbS+ImeeQQjG3WDoFtLsj7kKgSIfsJLmv7ENrGMq0vN0fM78jbMElViZgpgzM5DmlM5hG3EfO1xzg3ZLeopkoGSPPAGD+Ol3DBZjHf2EbeNsf1XMs2Rvq6ejLXbi9EkD0+FwmbF/iIhmyOJGoewXDwbXtLMVz3yyLfsq0xnzf4kEdehlroBmmiWgTTG9hjMFvkeWiGdKW2x/tmhBh59qLRW8gTAaQ5n0ttsx3rRFUE7DajhcaeANtpJmBp1hxsrzcrRKoqAnaRQIadYljZRUjWHJxv+yv91whgK6RC54N42Vt4LUWzmy8RERERERERERERKhg/AXm8VVtMsq/sAAAAAElFTkSuQmCC">
   <title>Dot_it | Pixel Character Playground</title>
-  <link rel="stylesheet" href="./css/style.css?v=themes-3">
+  <link rel="stylesheet" href="./css/style.css?v=stage-expansion-1">
   <script>
     (() => {
       const key = 'dot-it-theme';
@@ -331,7 +331,7 @@
           <span class="stage-tag"><span class="signal-dot"></span> 1 PLAYER</span>
         </div>
         <p class="stage-description">WASD 또는 방향키로 이동 · J 공격 · K 피격 · L 사망 · R 부활</p>
-        <div class="stage-frame"><div id="gameMount" class="game-mount" aria-label="캐릭터 조작용 게임 화면"></div><div class="stage-corner stage-corner-tl"></div><div class="stage-corner stage-corner-br"></div></div>
+        <div id="stageFrame" class="stage-frame"><div class="stage-view-controls"><button id="stageExpand" class="theme-toggle" type="button" aria-expanded="false" aria-controls="gameMount">광장 크게 보기</button></div><div id="gameMount" class="game-mount" aria-label="캐릭터 조작용 게임 화면"></div><div class="stage-corner stage-corner-tl"></div><div class="stage-corner stage-corner-br"></div></div>
         <section class="direction-settings" aria-label="공용 광장">
           <strong>공용 광장</strong>
           <p>Google 계정 없이 게스트로 입장할 수 있어요. 최대 8명 · 입장할 때 적용한 캐릭터가 다른 사람에게도 보여요.</p>
@@ -380,7 +380,7 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=plaza-hearts-2"></script>
+  <script type="module" src="./js/app.js?v=stage-expansion-1"></script>
   <script type="module" src="./js/google-account.js?v=1"></script>
 </body>
 </html>
