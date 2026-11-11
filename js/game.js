@@ -214,7 +214,7 @@ export class Playground {
   createPlazaName(x, y, nickname) {
     return this.scene.add.text(x,y+PLAZA_NAME_OFFSET,nickname,{
       fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#fff',
-      backgroundColor:'#15242e',padding:{x:4,y:2}
+      padding:{x:4,y:2}
     }).setOrigin(.5,0).setDepth(3);
   }
   setPlazaNickname(nickname) {
@@ -232,7 +232,7 @@ export class Playground {
   createPlazaHearts(x,y,hp) {
     return this.scene.add.text(x,y,this.heartText(hp),{
       fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#ff858e',
-      backgroundColor:'#15242e',padding:{x:3,y:1}
+      padding:{x:3,y:1}
     }).setOrigin(.5,1).setDepth(3);
   }
   positionRemotePlazaLabels(remote,x,y) {
@@ -411,7 +411,7 @@ export class Playground {
     const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
     if (!this.roomPlayer) {
       this.roomPlayer=this.scene.add.sprite(x,y,key).setScale(2).setDepth(1);
-      this.roomLabel=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff',backgroundColor:'#15242e'})
+      this.roomLabel=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff'})
         .setOrigin(.5,1).setDepth(3);
     }
     this.roomPlayer.setTexture(key).setFlipX(pose.flip).setPosition(x,y);
