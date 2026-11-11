@@ -12,6 +12,7 @@ export class Playground {
     this.state = 'IDLE';
     this.facing = 'right';
     this.oneShot = null;
+    this.dead = false;
     this.idleElapsedMs = 0;
     this.nextSpecialMs = 30000;
     this.moving = false;
@@ -41,9 +42,9 @@ export class Playground {
     for(let y=0;y<GAME_HEIGHT;y+=48) bg.lineBetween(0,y,GAME_WIDTH,y);
     scene.add.rectangle(GAME_WIDTH/2, GAME_HEIGHT-43, GAME_WIDTH, 86, 0x243740, 0.6);
     scene.add.text(20,20,'DOT_IT  /  SOLO PLAYGROUND',{fontFamily:'monospace',fontSize:'13px',color:'#a8ceba'}).setAlpha(.8);
-    scene.add.text(20,GAME_HEIGHT-27,'W A S D   /   ARROW KEYS  ·  MOVE',{fontFamily:'monospace',fontSize:'12px',color:'#9eb4bb'});
+    scene.add.text(20,GAME_HEIGHT-27,'WASD / ARROWS · MOVE   J · ATTACK   K · DAMAGE   L · DEATH   R · REVIVE',{fontFamily:'monospace',fontSize:'12px',color:'#9eb4bb'});
     this.cursors = scene.input.keyboard.createCursorKeys();
-    this.keys = scene.input.keyboard.addKeys('W,A,S,D,J');
+    this.keys = scene.input.keyboard.addKeys('W,A,S,D,J,K,L,R');
     scene.input.keyboard.on('keydown', ev => {
       if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(ev.key) &&
           !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) ev.preventDefault();
@@ -61,6 +62,7 @@ export class Playground {
     const { animations, sourceFacing } = data;
     const scale = Math.min(4,96/Math.max(data.width,data.height));
     this.oneShot = null;
+    this.dead = false;
     this.idleElapsedMs = 0;
     this.nextSpecialMs = data.specialDelayMs ?? 30000;
     this.moving = false;
@@ -81,7 +83,7 @@ export class Playground {
         return info.perFrame ? {key:frameKey,duration:info.durations[i]} : {key:frameKey};
       });
       const timeConfig=info.perFrame?{duration:1}:{frameRate:info.fps};
-      scene.anims.create({key,frames,...timeConfig,repeat:(kind==='attack'||kind==='special')?0:-1});
+      scene.anims.create({key,frames,...timeConfig,repeat:(kind==='idle'||kind==='walk')?-1:0});
       this.animKeys.push(key);
     }
     const savedX=this.x ?? GAME_WIDTH/2, savedY=this.y ?? GAME_HEIGHT/2;
@@ -93,6 +95,7 @@ export class Playground {
       const expected=this.oneShot&&('dotit-'+this.oneShot);
       if(animation.key!==expected) return;
       this.oneShot=null;
+      if (this.dead) return;
       this.playAnimation(this.moving?'walk':'idle');
       this.notifyState();
     });
@@ -150,11 +153,11 @@ export class Playground {
   }
   startOneShot(type) {
     if(!this.frameData?.animations?.[type]||!this.player) return false;
-    if(this.oneShot==='attack'&&type==='attack')return false;
-    if(this.oneShot==='attack'&&type==='special')return false;
-    if(this.oneShot==='special') this.player.anims.stop();
+    if (this.dead || this.oneShot===type) return false;
+    if (type==='attack' && this.oneShot==='damage') return false;
+    if (type==='death') this.dead=true;
     this.oneShot=type;
-    // Ensure repeated attacks are not queued: J is edge-triggered.
+    // Inputs trigger one animation without queuing repeats.
     this.state='';
     this.playAnimation(type);
     this.notifyState();
@@ -171,12 +174,23 @@ export class Playground {
   update(dt) {
     if (!this.player || !this.cursors || !this.frameData) return;
     const editing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
+    const pressed = Phaser.Input.Keyboard.JustDown;
+    const attackPressed=pressed(this.keys.J)&&!editing;
+    const damagePressed=pressed(this.keys.K)&&!editing&&Boolean(this.frameData.animations.damage);
+    const deathPressed=pressed(this.keys.L)&&!editing&&Boolean(this.frameData.animations.death);
+    const revivePressed=pressed(this.keys.R)&&!editing;
+    if (this.dead) {
+      if (this.oneShot || !revivePressed) return;
+      this.dead=false;
+      this.resetInactivity();
+    } else if (deathPressed) {
+      this.startOneShot('death');
+      return;
+    }
     const left=!editing&&(this.keys.A.isDown||this.cursors.left.isDown);
     const right=!editing&&(this.keys.D.isDown||this.cursors.right.isDown);
     const up=!editing&&(this.keys.W.isDown||this.cursors.up.isDown);
     const down=!editing&&(this.keys.S.isDown||this.cursors.down.isDown);
-    const pressedJ=Phaser.Input.Keyboard.JustDown(this.keys.J);
-    const attackPressed=!editing&&pressedJ;
     const dx=Number(right)-Number(left), dy=Number(down)-Number(up);
     const moving=Boolean(dx||dy);
     this.moving=moving;
@@ -188,11 +202,12 @@ export class Playground {
       if(dx)this.setFacing(dx<0?'left':'right');
     }
     // Input cancels special idle and restarts its inactivity countdown.
-    if(moving||attackPressed) this.resetInactivity();
+    if(moving||attackPressed||damagePressed) this.resetInactivity();
     else this.idleElapsedMs+=Math.max(0,Math.min(dt,1000));
 
     // Attack takes priority over SPECIAL, WALK and IDLE.
-    if(attackPressed&&this.frameData.animations.attack) this.startOneShot('attack');
+    if (damagePressed) this.startOneShot('damage');
+    else if (attackPressed) this.startOneShot('attack');
     if(!this.oneShot) {
       if(!moving&&this.frameData.animations.special&&this.idleElapsedMs>=this.nextSpecialMs) {
         this.nextSpecialMs=this.idleElapsedMs+(this.frameData.specialRepeatMs??60000);
