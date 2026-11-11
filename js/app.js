@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=plaza-7';
+import { Playground } from './game.js?v=plaza-8';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
@@ -7,7 +7,7 @@ import { saveCharacter, loadCharacter } from './character-storage.js';
 
 import { setupTestRoom } from './test-room.js?v=1';
 
-import { setupPublicPlaza } from './public-plaza.js?v=9';
+import { setupPublicPlaza } from './public-plaza.js?v=10';
 
 let testRoom;
 let publicPlaza;
@@ -615,6 +615,25 @@ async function handleFile(file) {
     notice('시트를 불러왔습니다. '+(dims?'프레임 크기 '+dims+'×'+dims+'px를 임시 설정했습니다. ':'')+'원본 방향과 애니메이션 범위를 확인하세요.');
   } catch(e) { if (load === imageLoad) notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
 }
+async function selectPlazaCharacter(choice, demo) {
+  if (choice==='demo') {
+    return {name:demoName,data:{...state.game.roomDemoData(demo,demoRanges),demo:true}};
+  }
+  if (choice==='saved') {
+    const saved=await loadCharacter();
+    if (!saved) throw new Error('저장한 캐릭터가 없습니다.');
+    if (saved.version!==1) throw new Error('지원하지 않는 캐릭터 저장 형식입니다.');
+    const [image,sheets]=await Promise.all([
+      createImageBitmap(saved.image),
+      Promise.all(saved.sheets.map(async ([type,sheet])=>[type,{...sheet,image:await createImageBitmap(sheet.image)}]))
+    ]);
+    const data=computeLayout(undefined,{...saved,image,sheets:new Map(sheets)});
+    return {name:saved.name,data:{...data,demo:saved.demo ?? (saved.name===demoName)}};
+  }
+  if (!state.game.frameData) throw new Error('적용한 캐릭터가 없습니다.');
+  return {name:$('activeCharacter').textContent,data:state.game.frameData};
+}
+
 function init() {
   try {
     state.game=new Playground($('gameMount'),(mode,x,y,facing,flipped)=>{
@@ -624,7 +643,7 @@ function init() {
     });
   } catch(e) {notice(e.message,true);return;}
   testRoom=setupTestRoom(state.game,createHumanDemo,demoRanges);
-  publicPlaza=setupPublicPlaza(state.game,createHumanDemo,demoRanges);
+  publicPlaza=setupPublicPlaza(state.game,createHumanDemo,demoRanges,selectPlazaCharacter);
   $('spriteFile').addEventListener('change',ev=>handleFile(ev.target.files?.[0]));
   const zone=$('dropZone');
   ['dragenter','dragover'].forEach(type=>zone.addEventListener(type,ev=>{ev.preventDefault();zone.classList.add('drag-over');}));
