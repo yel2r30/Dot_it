@@ -45,6 +45,21 @@ function createDemo() {
   }
   return canvas;
 }
+// Prefer a plausible sprite-grid layout instead of blindly selecting the smallest tile size.
+// A 384x240 image should resolve to 48x48 (8 columns x 5 rows), not 16x16.
+function suggestFrameSize(image) {
+  const candidates=[32,48,64,16].filter(size=>image.width%size===0&&image.height%size===0);
+  const plausible=candidates.find(size=>{
+    const cols=image.width/size,rows=image.height/size;
+    return cols>=2&&cols<=12&&rows>=2&&rows<=12;
+  });
+  return plausible??candidates[0]??null;
+}
+function resetSheetViewport() {
+  const viewport=$('sheetCanvas').parentElement;
+  viewport.scrollTop=0;
+  viewport.scrollLeft=0;
+}
 function computeLayout() {
   if(!state.image) throw new Error('이미지를 먼저 업로드해 주세요.');
   const w=Number($('frameWidth').value),h=Number($('frameHeight').value);
@@ -172,7 +187,7 @@ function apply() {
 function useDemo() {
   state.image=createDemo();state.demo=true;state.fileName='DEMO / Penguin';
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
-  resetDefaults(true);drawSheet();apply();
+  resetDefaults(true);drawSheet();resetSheetViewport();apply();
 }
 async function handleFile(file) {
   if(!file)return;
@@ -190,13 +205,14 @@ async function handleFile(file) {
     state.demo=false;
     state.fileName=file.name.replace(/\.png$/i,'');
     $('fileName').textContent='현재: '+file.name;
-    const dims=[16,32,48,64].find(n=>img.width%n===0&&img.height%n===0);
+    const dims=suggestFrameSize(img);
     if(dims){$('frameWidth').value=String(dims);$('frameHeight').value=String(dims);}
     const total=Math.floor(img.width/Number($('frameWidth').value))*Math.floor(img.height/Number($('frameHeight').value));
     $('idleStart').value='0';$('idleCount').value=String(Math.max(1,Math.min(4,total)));
     $('walkStart').value=String(total>4?4:0);$('walkCount').value=String(Math.max(1,Math.min(6,total-Number($('walkStart').value))));
     previewFrame=0;lastPreviewTime=0;syncPreviewInfo();drawSheet();
-    notice('시트를 불러왔습니다. 원본 방향과 IDLE/WALK 프레임을 확인하고 적용하세요.');
+    resetSheetViewport();
+    notice('시트를 불러왔습니다. '+(dims?'프레임 크기 '+dims+'×'+dims+'px를 임시 설정했습니다. ':'')+'원본 방향과 애니메이션 범위를 확인하세요.');
   } catch(e) { notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
   finally { if(url)URL.revokeObjectURL(url); }
 }
