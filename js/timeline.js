@@ -155,9 +155,10 @@ export class TimelineEditor {
       time += this.durations[i];
     }
     const pixels = Math.ceil(this.total * this.scale);
-    this.track.style.width = pixels + 'px';
-    this.ruler.style.width = pixels + 'px';
-    this.frames.style.width = pixels + 'px';
+    // Make room for the final keyframe handle at the far right edge.
+    this.track.style.width = (pixels + 22) + 'px';
+    this.ruler.style.width = (pixels + 22) + 'px';
+    this.frames.style.width = (pixels + 22) + 'px';
     this.setPlayhead(this.time);
   }
 
