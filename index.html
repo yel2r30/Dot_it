@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#10161d">
   <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
   <title>Dot_it | Pixel Character Playground</title>
-  <link rel="stylesheet" href="./css/style.css?v=dev001-sheet-preview-fix-3">
+  <link rel="stylesheet" href="./css/style.css?v=dev001-frame-timing-4">
 </head>
 <body>
   <div class="page-shell">
@@ -74,9 +74,20 @@
             <label>FPS<input id="walkFps" type="number" min="1" max="24" step="1" value="8"></label>
           </div>
         </div>
+        <div class="frame-timing-panel">
+          <label class="frame-timing-toggle">
+            <input id="perFrameToggle" type="checkbox">
+            <span class="frame-timing-toggle-copy"><strong>프레임별 재생 시간 사용</strong><small>기본 FPS 대신 각 프레임을 보여줄 시간(ms)을 지정합니다.</small></span>
+          </label>
+          <div id="frameTimingEditor" class="frame-timing-editor" hidden>
+            <div class="frame-timing-heading"><span>프레임별 시간 · 20~3000ms</span><button type="button" id="resetFrameTimes" class="text-button">전체 FPS 기준으로 초기화</button></div>
+            <div id="frameTimingList" class="frame-timing-list" aria-label="개별 프레임 재생 시간"></div>
+            <p class="frame-timing-help">숫자가 클수록 오래 멈춰 보여요. IDLE과 WALK는 각각 따로 설정할 수 있습니다.</p>
+          </div>
+        </div>
         <div class="anim-preview-area">
           <canvas id="animCanvas" width="160" height="160" aria-label="선택한 애니메이션 미리보기"></canvas>
-          <div class="anim-preview-copy"><span class="eyebrow">LIVE PREVIEW</span><strong id="previewTitle">IDLE</strong><span id="previewInfo">4 frames · 4 FPS</span><small>설정을 바꾸면 여기에서 바로 확인할 수 있어요.</small>
+          <div class="anim-preview-copy"><span class="eyebrow">LIVE PREVIEW</span><strong id="previewTitle">IDLE</strong><span id="previewInfo">4 frames · 4 FPS</span><span id="previewFrameTime" class="preview-frame-time">프레임 0 · 250ms</span><small>설정을 바꾸면 여기에서 바로 확인할 수 있어요.</small>
             <span id="previewMirrorStatus" class="mirror-result">원본 방향 그대로</span>
             <div class="preview-directions" role="group" aria-label="미리보기 방향">
               <button id="previewLeft" type="button" aria-pressed="false">← 왼쪽</button>
@@ -111,6 +122,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-001 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=dev001-sheet-preview-fix-3"></script>
+  <script type="module" src="./js/app.js?v=dev001-frame-timing-4"></script>
 </body>
 </html>
