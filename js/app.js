@@ -1,15 +1,15 @@
-import { Playground } from './game.js?v=action-sheets-2';
+import { Playground } from './game.js?v=damage-death-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { monsterPng } from './demo-monster.js';
 
-const demoRanges = {idle:[0,8],special:[8,6],walk:[16,5],attack:[24,8]};
+const demoRanges = {idle:[0,8],special:[8,6],walk:[16,5],attack:[24,8],damage:[32,4],death:[40,5]};
 let imageLoad = 0;
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_DIMENSION = 2048;
-const animationTypes = ['idle', 'walk', 'special', 'attack'];
-const optionalTypes = ['special', 'attack'];
+const animationTypes = ['idle', 'walk', 'special', 'attack', 'damage', 'death'];
+const optionalTypes = ['special', 'attack', 'damage', 'death'];
 const ids = ['frameWidth', 'frameHeight', 'anchorX', 'anchorY', 'specialDelay', 'specialRepeat',
   ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps', 'Width', 'Height', 'AnchorX', 'AnchorY'].map(field => type + field))];
 const state = { image: null, fileName: 'DEMO / Monster', selected: 'idle', game: null, timeline: null };
