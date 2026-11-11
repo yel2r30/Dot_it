@@ -100,3 +100,20 @@
 .timeline-inspector>.text-button:disabled{color:#748791;cursor:default}
 .timeline-dragging,.timeline-dragging *{cursor:ew-resize!important;user-select:none!important}
 @media(max-width:620px){.timeline-transport{gap:7px}.timeline-inspector{align-items:flex-start}.timeline-inspector>label{flex-wrap:wrap}.timeline-viewport{height:151px}}
+
+/* DEV-002: four animation tracks and optional one-shot actions */
+.mode-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.mode-tab{font-size:11px;padding:10px 3px;line-height:1.45}
+.mode-tab span{display:block;margin:2px 0 0;font-size:9px}
+.mode-tab.optional-inactive{opacity:.65}
+.optional-animation-toggle{display:flex;align-items:center;gap:10px;margin:12px 0;padding:12px;border:1px solid #3d5361;border-radius:8px;background:#172630;font-size:12px;cursor:pointer}
+.optional-animation-toggle input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.optional-animation-toggle span{font-weight:700}
+.optional-animation-toggle small{display:block;margin-top:5px;font-size:10px;font-weight:400;color:#9cb0bb;line-height:1.5}
+.optional-animation-config{padding:3px 0 0}
+.optional-animation-config[hidden]{display:none}
+.optional-extra-fields{margin-top:12px}
+.animation-fields[hidden]{display:none}
+.frame-timing-panel.is-inactive{opacity:.65}
+.frame-timing-panel.is-inactive .frame-timing-editor{display:none}
+@media(max-width:620px){.mode-tab{font-size:10px}.mode-tab span{font-size:8px}}
