@@ -49,12 +49,12 @@
 
         <div class="section-title"><span>03</span> 캐릭터 방향</div>
         <div class="direction-settings">
-          <label for="sourceFacing">원본 스프라이트가 보는 방향</label>
+          <label for="sourceFacing">기본 시트가 보는 방향</label>
           <select id="sourceFacing" aria-describedby="directionHelp">
             <option value="right">오른쪽 (→) 기본</option>
             <option value="left">왼쪽 (←) 기본</option>
           </select>
-          <p id="directionHelp">방향을 바꾸면 즉시 적용됩니다. 반대쪽으로 이동하면 좌우 반전되고, 멈추거나 위아래로 움직일 때는 마지막 방향을 유지합니다.</p>
+          <p id="directionHelp">기본 방향은 즉시 적용됩니다. 별도 PNG는 동작별로 방향을 지정할 수 있습니다. 반대쪽으로 이동하면 좌우 반전되고, 멈추거나 위아래로 움직일 때는 마지막 방향을 유지합니다.</p>
         </div>
 
         <div class="section-title"><span>04</span> 애니메이션 지정</div>
@@ -74,6 +74,13 @@
               <label>프레임 높이<input id="idleHeight" type="number" min="8" max="256" step="1"></label>
               <label>발 기준점 X<input id="idleAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
               <label>발 기준점 Y<input id="idleAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <label>별도 PNG가 보는 방향
+                <select id="idleSourceFacing">
+                  <option value="">기본 시트와 같음</option>
+                  <option value="right">오른쪽 (→)</option>
+                  <option value="left">왼쪽 (←)</option>
+                </select>
+              </label>
               <button id="idleClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
             </div>
           </details>
@@ -93,6 +100,13 @@
               <label>프레임 높이<input id="walkHeight" type="number" min="8" max="256" step="1"></label>
               <label>발 기준점 X<input id="walkAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
               <label>발 기준점 Y<input id="walkAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <label>별도 PNG가 보는 방향
+                <select id="walkSourceFacing">
+                  <option value="">기본 시트와 같음</option>
+                  <option value="right">오른쪽 (→)</option>
+                  <option value="left">왼쪽 (←)</option>
+                </select>
+              </label>
               <button id="walkClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
             </div>
           </details>
@@ -114,6 +128,13 @@
               <label>프레임 높이<input id="specialHeight" type="number" min="8" max="256" step="1"></label>
               <label>발 기준점 X<input id="specialAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
               <label>발 기준점 Y<input id="specialAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <label>별도 PNG가 보는 방향
+                <select id="specialSourceFacing">
+                  <option value="">기본 시트와 같음</option>
+                  <option value="right">오른쪽 (→)</option>
+                  <option value="left">왼쪽 (←)</option>
+                </select>
+              </label>
               <button id="specialClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
             </div>
           </details>
@@ -141,6 +162,13 @@
               <label>프레임 높이<input id="attackHeight" type="number" min="8" max="256" step="1"></label>
               <label>발 기준점 X<input id="attackAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
               <label>발 기준점 Y<input id="attackAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <label>별도 PNG가 보는 방향
+                <select id="attackSourceFacing">
+                  <option value="">기본 시트와 같음</option>
+                  <option value="right">오른쪽 (→)</option>
+                  <option value="left">왼쪽 (←)</option>
+                </select>
+              </label>
               <button id="attackClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
             </div>
           </details>
@@ -232,6 +260,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=action-sheets-1"></script>
+  <script type="module" src="./js/app.js?v=action-sheets-2"></script>
 </body>
 </html>
