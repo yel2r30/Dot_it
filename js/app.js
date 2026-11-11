@@ -355,8 +355,8 @@ function init() {
     resetPreviewClock();
     renderFrameTimes();syncPreviewInfo();
     notice(ev.target.checked
-      ? '프레임별 시간을 설정할 수 있습니다. 변경 후 캐릭터에 적용해 주세요.'
-      : '전체 FPS 모드로 전환했습니다. 변경 후 캐릭터에 적용해 주세요.');
+      ? '키프레임(◆)을 드래그하거나 선택한 프레임의 시간을 숫자로 조절해 보세요.'
+      : '전체 FPS 모드로 전환했습니다. 타임라인은 미리보기로 계속 사용할 수 있습니다.');
   });
   $('resetFrameTimes').addEventListener('click',()=>{
     const type=state.selected;
@@ -366,8 +366,43 @@ function init() {
     resetPreviewClock();renderFrameTimes();syncPreviewInfo();
     notice('모든 프레임 시간을 현재 '+$(type+'Fps').value+' FPS 기준으로 초기화했습니다.');
   });
+  $('selectedFrameTime').addEventListener('change',event=>{
+    const value=Number(event.target.value);
+    if(!Number.isInteger(value)||value<20||value>3000){
+      notice('유지 시간은 20~3000ms 사이의 정수를 입력해 주세요.',true);
+      refreshInspector();return;
+    }
+    state.timeline?.setDuration(selectedFrames[state.selected],value,true,false);
+    event.target.blur();
+  });
+  $('timelinePlayPause').addEventListener('click',()=>setPreviewPlaying(!previewPlaying));
+  $('timelineRestart').addEventListener('click',()=>{
+    selectTimelineFrame(0);seekPreview(0);
+  });
+  $('timelinePrev').addEventListener('click',()=>{
+    const type=state.selected;
+    const count=Number($(type+'Count').value);
+    const index=(selectedFrames[type]-1+count)%count;
+    selectTimelineFrame(index);seekPreview(state.timeline?.getStart(index)||0);
+  });
+  $('timelineNext').addEventListener('click',()=>{
+    const type=state.selected;
+    const count=Number($(type+'Count').value);
+    const index=(selectedFrames[type]+1)%count;
+    selectTimelineFrame(index);seekPreview(state.timeline?.getStart(index)||0);
+  });
   $('previewLeft').addEventListener('click',()=>setPreviewFacing('left'));
   $('previewRight').addEventListener('click',()=>setPreviewFacing('right'));
+  state.timeline=new TimelineEditor({
+    viewport:$('timelineViewport'),track:$('timelineTrack'),
+    ruler:$('timelineRuler'),frames:$('timelineFrames'),
+    playhead:$('timelinePlayhead'),
+    getSnap:()=>Number($('timelineSnap').value),
+    onSelect:index=>selectTimelineFrame(index),
+    onChange:(index,value,finished)=>changeTimelineDuration(index,value,finished),
+    onSeek:ms=>seekPreview(ms)
+  });
+  setPreviewPlaying(true);
   $('gameMount').addEventListener('pointerdown',()=>{
     // The game should regain keyboard input after editing frame numbers.
     if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) document.activeElement.blur();
