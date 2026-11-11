@@ -161,11 +161,11 @@ export class TimelineEditor {
     this.setPlayhead(this.time);
   }
 
-  setDuration(index, value, finished = false) {
+  setDuration(index, value, finished = false, useSnap = true) {
     if (!this.data?.editable || index < 0 || index >= this.durations.length || !Number.isFinite(value)) return;
     const step = this.getSnap();
     let number = clamp(Math.round(value), MIN_MS, MAX_MS);
-    if (step) number = clamp(Math.round(number / step) * step, MIN_MS, MAX_MS);
+    if (step && useSnap) number = clamp(Math.round(number / step) * step, MIN_MS, MAX_MS);
     if (this.durations[index] !== number) {
       this.durations[index] = number;
       this.applyPositions();
