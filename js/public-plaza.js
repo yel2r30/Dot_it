@@ -1,6 +1,6 @@
 import { firebaseConfig } from './firebase-config.js?v=plaza-1';
 
-import { isBlockedNickname } from './nickname-filter.js?v=2';
+import { isBlockedNickname } from './nickname-filter.js?v=3';
 
 const sdk='https://www.gstatic.com/firebasejs/12.19.0/';
 const slots=8;
