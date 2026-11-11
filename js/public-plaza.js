@@ -10,6 +10,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
   const enter=document.getElementById('plazaEnter');
   const leave=document.getElementById('plazaLeave');
   const status=document.getElementById('plazaStatus');
+  const nicknameInput=document.getElementById('plazaNickname');
   let session;
 
   async function stop(message='공용 광장에서 나왔습니다.') {
@@ -30,16 +31,23 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       }
     } catch {} finally {
       if (current.database) current.db.goOffline(current.database);
-      if (!session) enter.disabled=false;
+      if (!session) enter.disabled=nicknameInput.disabled=false;
     }
   }
 
   async function start() {
     if (session) return;
+    const nickname=nicknameInput.value.trim();
+    if (!nickname || nickname.length>16 || /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(nickname)) {
+      status.textContent='닉네임을 1~16자로 입력해 주세요.';
+      nicknameInput.focus();
+      return;
+    }
+    nicknameInput.value=nickname;
     const current={id:crypto.randomUUID(),subscriptions:[],remotes:new Map()};
     session=current;
     leave.disabled=false;
-    enter.disabled=true;
+    enter.disabled=nicknameInput.disabled=true;
     status.textContent='공용 광장에 연결하는 중입니다.';
     current.timeout=setTimeout(()=>stop('연결 시간이 초과됐습니다. 잠시 뒤 다시 시도해 주세요.'),18000);
     try {
@@ -67,6 +75,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       if (session!==current) return;
       game.enterTestRoom(demo,ranges);
       current.demoInstalled=true;
+      game.setPlazaNickname(nickname);
       current.subscriptions.push(auth.onAuthStateChanged(account,next=>{
         if (session===current && next?.uid!==user.uid) void stop('로그인이 종료되어 광장에서 나왔습니다.');
       }));
@@ -76,7 +85,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       const plaza=db.ref(database,'plazaV1');
       const initial=(await db.get(plaza)).val() ?? {};
       if (session!==current) return;
-      const payload=()=>({...game.plazaPose(),uid:user.uid,session:current.id,at:db.serverTimestamp()});
+      const payload=()=>({...game.plazaPose(),uid:user.uid,nickname,session:current.id,at:db.serverTimestamp()});
       let offset=0;
       current.subscriptions.push(db.onValue(db.ref(database,'.info/serverTimeOffset'),snapshot=>{
         offset=Number(snapshot.val())||0;
@@ -135,7 +144,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
         if (!pose || pending || (encoded===last && Date.now()-sentAt<12000)) return;
         pending=true;
         try {
-          await db.set(current.slot,{...pose,uid:user.uid,session:current.id,at:db.serverTimestamp()});
+          await db.set(current.slot,{...pose,uid:user.uid,nickname,session:current.id,at:db.serverTimestamp()});
           last=encoded;
           sentAt=Date.now();
         } catch {
@@ -147,6 +156,12 @@ export function setupPublicPlaza(game, createDemo, ranges) {
     }
   }
   enter.addEventListener('click',()=>start());
+  nicknameInput.addEventListener('keydown',event=>{
+    if (event.key==='Enter' && !event.isComposing && !event.repeat) {
+      event.preventDefault();
+      void start();
+    }
+  });
   leave.addEventListener('click',()=>stop());
   window.addEventListener('pagehide',()=>stop());
   return {stop};
