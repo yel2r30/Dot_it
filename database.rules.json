@@ -39,6 +39,30 @@
           },
           "$other": {
             ".validate": false
+          },
+          "hp": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3 && newData.val() % 1 === 0"
+          },
+          "strike": {
+            ".validate": "newData.hasChildren(['id','x','y','flip','at'])",
+            "id": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000000 && newData.val() % 1 === 0"
+            },
+            "x": {
+              ".validate": "newData.isNumber() && newData.val() >= 28 && newData.val() <= 932"
+            },
+            "y": {
+              ".validate": "newData.isNumber() && newData.val() >= 28 && newData.val() <= 478"
+            },
+            "flip": {
+              ".validate": "newData.isBoolean()"
+            },
+            "at": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 5000"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "$other": {
