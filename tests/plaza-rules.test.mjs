@@ -32,6 +32,10 @@ test('plaza ownership, visibility, and server-side validation', async () => {
     await assertFails(guest.ref('plazaV2/0/pose').get());
     await assertFails(bob.ref('plazaV1').get());
     await assertSucceeds(alice.ref('plazaV2/0/pose').update({x:130,action:'walk',at:{'.sv':'timestamp'}}));
+    const strike={id:1,x:130,y:150,flip:false,at:{'.sv':'timestamp'}};
+    await assertSucceeds(alice.ref('plazaV2/0/pose').update({hp:2,strike,at:{'.sv':'timestamp'}}));
+    await assertFails(alice.ref('plazaV2/0/pose').update({hp:4}));
+    await assertFails(bob.ref('plazaV2/0/pose').update({hp:0}));
     await assertFails(bob.ref('plazaV2/0/pose').update({x:130}));
     await assertFails(bob.ref('plazaV2/0').remove());
     await assertFails(bob.ref('plazaV2/0').set(second));
