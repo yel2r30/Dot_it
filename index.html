@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#10161d">
   <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
   <title>Dot_it | Pixel Character Playground</title>
-  <link rel="stylesheet" href="./css/style.css?v=dev002-animations-1">
+  <link rel="stylesheet" href="./css/style.css?v=action-sheets-5">
 </head>
 <body>
   <div class="page-shell">
@@ -67,8 +67,7 @@
         <div class="animation-fields" id="idleFields">
           <p class="field-context">IDLE · 움직이지 않을 때 반복 재생</p>
           <details class="optional-animation-config">
-            <summary>이 동작의 별도 PNG 시트</summary>
-            <label>PNG 선택<input id="idleSheet" type="file" accept="image/png,.png"></label>
+            <summary>이 동작의 별도 PNG 시트 <input class="action-sheet-file" id="idleSheet" type="file" accept="image/png,.png" aria-label="이 동작의 별도 PNG 파일 선택"></summary>
             <div class="fields two" id="idleSheetGeometry" hidden>
               <label>프레임 너비<input id="idleWidth" type="number" min="8" max="256" step="1"></label>
               <label>프레임 높이<input id="idleHeight" type="number" min="8" max="256" step="1"></label>
@@ -93,8 +92,7 @@
         <div class="animation-fields" id="walkFields" hidden>
           <p class="field-context">WALK · 이동 키를 누를 때 반복 재생</p>
           <details class="optional-animation-config">
-            <summary>이 동작의 별도 PNG 시트</summary>
-            <label>PNG 선택<input id="walkSheet" type="file" accept="image/png,.png"></label>
+            <summary>이 동작의 별도 PNG 시트 <input class="action-sheet-file" id="walkSheet" type="file" accept="image/png,.png" aria-label="이 동작의 별도 PNG 파일 선택"></summary>
             <div class="fields two" id="walkSheetGeometry" hidden>
               <label>프레임 너비<input id="walkWidth" type="number" min="8" max="256" step="1"></label>
               <label>프레임 높이<input id="walkHeight" type="number" min="8" max="256" step="1"></label>
@@ -121,8 +119,7 @@
           <label class="optional-animation-toggle"><input id="specialEnabled" type="checkbox"><span>특별 IDLE 사용 <small>시트에 특별 대기 동작이 없다면 꺼 둬도 됩니다.</small></span></label>
           <div class="optional-animation-config" id="specialOptions" hidden>
             <details class="optional-animation-config">
-            <summary>이 동작의 별도 PNG 시트</summary>
-            <label>PNG 선택<input id="specialSheet" type="file" accept="image/png,.png"></label>
+            <summary>이 동작의 별도 PNG 시트 <input class="action-sheet-file" id="specialSheet" type="file" accept="image/png,.png" aria-label="이 동작의 별도 PNG 파일 선택"></summary>
             <div class="fields two" id="specialSheetGeometry" hidden>
               <label>프레임 너비<input id="specialWidth" type="number" min="8" max="256" step="1"></label>
               <label>프레임 높이<input id="specialHeight" type="number" min="8" max="256" step="1"></label>
@@ -155,8 +152,7 @@
           <label class="optional-animation-toggle"><input id="attackEnabled" type="checkbox"><span>공격 애니메이션 사용 <small>공격 시트가 없으면 비활성화해도 됩니다.</small></span></label>
           <div class="optional-animation-config" id="attackOptions" hidden>
             <details class="optional-animation-config">
-            <summary>이 동작의 별도 PNG 시트</summary>
-            <label>PNG 선택<input id="attackSheet" type="file" accept="image/png,.png"></label>
+            <summary>이 동작의 별도 PNG 시트 <input class="action-sheet-file" id="attackSheet" type="file" accept="image/png,.png" aria-label="이 동작의 별도 PNG 파일 선택"></summary>
             <div class="fields two" id="attackSheetGeometry" hidden>
               <label>프레임 너비<input id="attackWidth" type="number" min="8" max="256" step="1"></label>
               <label>프레임 높이<input id="attackHeight" type="number" min="8" max="256" step="1"></label>
@@ -255,6 +251,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=action-sheets-4"></script>
+  <script type="module" src="./js/app.js?v=action-sheets-5"></script>
 </body>
 </html>
