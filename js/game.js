@@ -83,7 +83,8 @@ export class Playground {
         return info.perFrame ? {key:frameKey,duration:info.durations[i]} : {key:frameKey};
       });
       const timeConfig=info.perFrame?{duration:1}:{frameRate:info.fps};
-      scene.anims.create({key,frames,...timeConfig,repeat:(kind==='idle'||kind==='walk')?-1:0});
+      const loops = kind==='idle' || kind==='walk' || (kind==='special' && data.specialLoop);
+      scene.anims.create({key,frames,...timeConfig,repeat:loops?-1:0});
       this.animKeys.push(key);
     }
     const savedX=this.x ?? GAME_WIDTH/2, savedY=this.y ?? GAME_HEIGHT/2;
@@ -210,7 +211,7 @@ export class Playground {
     else if (attackPressed) this.startOneShot('attack');
     if(!this.oneShot) {
       if(!moving&&this.frameData.animations.special&&this.idleElapsedMs>=this.nextSpecialMs) {
-        this.nextSpecialMs=this.idleElapsedMs+(this.frameData.specialRepeatMs??60000);
+        this.nextSpecialMs=this.idleElapsedMs+(this.frameData.specialRepeatMs??30000);
         this.startOneShot('special');
       }else this.playAnimation(moving?'walk':'idle');
     }
