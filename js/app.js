@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=plaza-6';
+import { Playground } from './game.js?v=plaza-7';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 import { createHumanDemo } from './demo-human.js?v=6';
@@ -7,7 +7,7 @@ import { saveCharacter, loadCharacter } from './character-storage.js';
 
 import { setupTestRoom } from './test-room.js?v=1';
 
-import { setupPublicPlaza } from './public-plaza.js?v=8';
+import { setupPublicPlaza } from './public-plaza.js?v=9';
 
 let testRoom;
 let publicPlaza;
@@ -490,7 +490,7 @@ function apply(message='캐릭터에 적용했습니다! WASD 또는 방향키�
     const data=computeLayout();
     testRoom?.stop('캐릭터 설정을 적용하여 테스트 방에서 나왔습니다.');
     publicPlaza?.stop('캐릭터 설정을 적용하여 공용 광장에서 나왔습니다.');
-    state.game.install(data);
+    state.game.install({...data,demo:state.demo});
     $('activeCharacter').textContent=state.fileName;
     notice(message);
     drawSheet();
