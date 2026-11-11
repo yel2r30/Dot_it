@@ -120,6 +120,7 @@ export class Playground {
     this.player.setFlipX(flipped);
     this.player.setPosition(this.x+(flipped?-offsetX:offsetX),this.y+offsetY);
     this.plazaName?.setPosition(this.x,this.y+this.localPlazaNameOffset());
+    this.plazaHearts?.setPosition(this.x,Math.max(16,this.player.y-frame.height*this.player.scaleY/2-4));
   }
   notifyState() {
     if (!this.player) return;
@@ -179,6 +180,8 @@ export class Playground {
     this.plazaCombat=null;
     this.plazaName?.destroy();
     this.plazaName=null;
+    this.plazaHearts?.destroy();
+    this.plazaHearts=null;
     for (const key of this.plazaPlayers?.keys() ?? []) this.showPlazaPlayer(key,null);
     if (!this.plazaDemo) return;
     for (const key of this.plazaDemo.animations) this.scene.anims.remove(key);
@@ -216,16 +219,28 @@ export class Playground {
   }
   setPlazaNickname(nickname) {
     this.plazaName?.destroy();
-    this.plazaNickname=nickname;
-    this.plazaName=this.createPlazaName(this.x,this.y,this.plazaLabel(nickname,this.plazaCombat.hp));
+    this.plazaName=this.createPlazaName(this.x,this.y,nickname);
+    this.plazaHearts?.destroy();
+    this.plazaHearts=this.createPlazaHearts(this.x,this.y,this.plazaCombat.hp);
+    this.positionSprite();
     this.plazaName.setPosition(this.x,this.y+this.localPlazaNameOffset());
   }
-  plazaLabel(nickname,hp) {
+  heartText(hp) {
     return Number.isInteger(hp) && hp>=0 && hp<=PLAZA_MAX_HP
-      ? nickname+'  '+'♥'.repeat(hp)+'♡'.repeat(PLAZA_MAX_HP-hp) : nickname;
+      ? '♥'.repeat(hp)+'♡'.repeat(PLAZA_MAX_HP-hp) : '';
+  }
+  createPlazaHearts(x,y,hp) {
+    return this.scene.add.text(x,y,this.heartText(hp),{
+      fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#ff858e',
+      backgroundColor:'#15242e',padding:{x:3,y:1}
+    }).setOrigin(.5,1).setDepth(3);
+  }
+  positionRemotePlazaLabels(remote,x,y) {
+    remote.label.setPosition(x,y+remote.nameOffset);
+    remote.hearts.setPosition(x,Math.max(16,y-remote.headOffset));
   }
   updatePlazaHealth() {
-    this.plazaName?.setText(this.plazaLabel(this.plazaNickname,this.plazaCombat.hp));
+    this.plazaHearts?.setText(this.heartText(this.plazaCombat.hp));
     this.notifyState();
   }
   startPlazaAttack() {
@@ -303,6 +318,7 @@ export class Playground {
     if (!pose) {
       remote?.sprite.destroy();
       remote?.label.destroy();
+      remote?.hearts.destroy();
       if (remote?.appearance) {
         for (const key of remote.appearance.animations) this.scene.anims.remove(key);
         for (const key of remote.appearance.frames) this.scene.textures.remove(key);
@@ -324,7 +340,8 @@ export class Playground {
     if (!remote) {
       const sprite=this.scene.add.sprite(x,y,key+'-frame-'+info.start).setScale(2).setDepth(1);
       const label=this.createPlazaName(x,y,nickname);
-      remote={sprite,label,targetX:x,targetY:y,vx:0,vy:0,age:0};
+      const hearts=this.createPlazaHearts(x,y,pose.hp);
+      remote={sprite,label,hearts,targetX:x,targetY:y,vx:0,vy:0,age:0};
       this.plazaPlayers.set(id,remote);
     }
     remote.nameOffset=appearance ? Math.max(12,info.bottom+4) : PLAZA_NAME_OFFSET;
@@ -335,14 +352,17 @@ export class Playground {
       remote.session=pose.session;
     }
     remote.sprite.setFlipX(pose.flip);
-    const label=this.plazaLabel(nickname,pose.hp);
-    if (remote.label.text!==label) remote.label.setText(label);
+    remote.headOffset=appearance ? data.height*data.worldScale/2+4 : 48;
+    if (remote.label.text!==nickname) remote.label.setText(nickname);
+    const hearts=this.heartText(pose.hp);
+    if (remote.hearts.text!==hearts) remote.hearts.setText(hearts);
+    this.positionRemotePlazaLabels(remote,remote.sprite.x,remote.sprite.y);
     remote.sprite.setAlpha(pose.hp===0 && action!=='death' ? .45 : 1);
     const receivedAt=Number.isFinite(pose.at) ? pose.at : Date.now();
     const changedSession=remote.sampleSession!==pose.session;
     if (changedSession) {
       remote.sprite.setPosition(x,y);
-      remote.label.setPosition(x,y+remote.nameOffset);
+      this.positionRemotePlazaLabels(remote,x,y);
     }
     if (changedSession || receivedAt>= (remote.sampleAt ?? 0)) {
       const elapsed=Math.max(50,receivedAt-(remote.sampleAt ?? receivedAt));
@@ -368,7 +388,7 @@ export class Playground {
       const x=Math.abs(dx)<.1 ? targetX : remote.sprite.x+dx*blend;
       const y=Math.abs(dy)<.1 ? targetY : remote.sprite.y+dy*blend;
       remote.sprite.setPosition(x,y);
-      remote.label.setPosition(x,y+remote.nameOffset);
+      this.positionRemotePlazaLabels(remote,x,y);
     }
   }
   roomPose() {
