@@ -6,6 +6,7 @@ const MAX_DIMENSION = 2048;
 const ids = ['frameWidth','frameHeight','idleStart','idleCount','idleFps','walkStart','walkCount','walkFps'];
 const state = { image: null, demo: true, fileName: 'DEMO / Penguin', selected: 'idle', frames: { idle:{start:0,count:4,fps:4},walk:{start:6,count:6,fps:8} }, frameWidth:32, frameHeight:32, game:null };
 let previewFrame = 0;
+let previewFacing = 'right';
 let lastPreviewTime = 0;
 let previewRequest = null;
 
@@ -51,7 +52,9 @@ function computeLayout() {
       throw new Error(kind.toUpperCase()+' 설정을 확인해 주세요. 시작 번호와 프레임 수는 전체 '+total+'칸 안에 있어야 하고, FPS는 1~24입니다.');
     animations[kind]={start,count,fps};
   }
-  return {image:state.image,width:w,height:h,columns:cols,rows,total,animations};
+  const sourceFacing=$('sourceFacing').value;
+  if(!['left','right'].includes(sourceFacing))throw new Error('원본 방향을 선택해 주세요.');
+  return {image:state.image,width:w,height:h,columns:cols,rows,total,animations,sourceFacing};
 }
 function drawSheet() {
   const canvas=$('sheetCanvas'),g=canvas.getContext('2d');
@@ -82,6 +85,14 @@ function drawSheet() {
       g.fillStyle=selected?'#dcffad':'#e9f3f4';
       g.font='10px monospace';g.fillText(String(i),x+4,y+12);
     }
+  }
+}
+function setPreviewFacing(direction) {
+  previewFacing=direction;
+  for(const d of ['left','right']) {
+    const element=$(d==='left'?'previewLeft':'previewRight');
+    element.classList.toggle('active',d===direction);
+    element.setAttribute('aria-pressed',String(d===direction));
   }
 }
 function syncPreviewInfo() {
@@ -118,13 +129,22 @@ function animatePreview(timestamp) {
   const scale=Math.min(4,Math.max(1,Math.floor(130/Math.max(data.width,data.height))));
   const renderW=data.width*scale,renderH=data.height*scale;
   g.imageSmoothingEnabled=false;
+  // Flip the entire preview frame around its centre only for the opposite direction.
+  g.save();
+  if(previewFacing!==data.sourceFacing) {
+    g.translate(c.width,0);
+    g.scale(-1,1);
+  }
   g.drawImage(data.image,column*data.width,row*data.height,data.width,data.height,
     (c.width-renderW)/2,(c.height-renderH)/2,renderW,renderH);
+  g.restore();
 }
 function resetDefaults(demo=false) {
   $('frameWidth').value='32';$('frameHeight').value='32';
   $('idleStart').value='0';$('idleCount').value='4';$('idleFps').value='4';
   $('walkStart').value=demo?'6':'0';$('walkCount').value=demo?'6':'4';$('walkFps').value='8';
+  $('sourceFacing').value='right';
+  setPreviewFacing('right');
   previewFrame=0;lastPreviewTime=0;syncPreviewInfo();
 }
 function apply() {
@@ -163,15 +183,16 @@ async function handleFile(file) {
     $('idleStart').value='0';$('idleCount').value=String(Math.max(1,Math.min(4,total)));
     $('walkStart').value=String(total>4?4:0);$('walkCount').value=String(Math.max(1,Math.min(6,total-Number($('walkStart').value))));
     previewFrame=0;lastPreviewTime=0;syncPreviewInfo();drawSheet();
-    notice('시트를 불러왔습니다. IDLE/WALK 프레임을 확인하고 적용하세요.');
+    notice('시트를 불러왔습니다. 원본 방향과 IDLE/WALK 프레임을 확인하고 적용하세요.');
   } catch(e) { notice(e?.message||'PNG를 읽을 수 없습니다.',true); }
   finally { if(url)URL.revokeObjectURL(url); }
 }
 function init() {
   try {
-    state.game=new Playground($('gameMount'),(mode,x,y)=>{
+    state.game=new Playground($('gameMount'),(mode,x,y,facing)=>{
       $('movementStatus').textContent=mode;
       $('positionStatus').textContent=x+', '+y;
+      $('facingStatus').textContent=facing==='left'?'LEFT ←':'RIGHT →';
     });
   } catch(e) {notice(e.message,true);return;}
   $('spriteFile').addEventListener('change',ev=>handleFile(ev.target.files?.[0]));
@@ -183,6 +204,13 @@ function init() {
   $('idleTab').addEventListener('click',()=>selectMode('idle'));
   $('walkTab').addEventListener('click',()=>selectMode('walk'));
   $('applyButton').addEventListener('click',apply);
+  $('previewLeft').addEventListener('click',()=>setPreviewFacing('left'));
+  $('previewRight').addEventListener('click',()=>setPreviewFacing('right'));
+  $('sourceFacing').addEventListener('change',()=>{
+    // Default preview to the actual orientation of the uploaded original.
+    setPreviewFacing($('sourceFacing').value);
+    notice('원본 방향이 변경되었습니다. 적용하기를 눌러 캐릭터에 반영하세요.');
+  });
   for(const id of ids) $(id).addEventListener('input',()=>{
     previewFrame=0;lastPreviewTime=0;syncPreviewInfo();drawSheet();
     try {computeLayout();notice('설정이 변경되었습니다. 적용하기를 눌러 게임에 반영하세요.');}
