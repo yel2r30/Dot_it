@@ -32,10 +32,19 @@ export function createHumanDemo() {
       ctx.translate(column*size+24+fallShift,row*size+41+lift);
       ctx.rotate(lean);
       const handY = effect==='strike' ? -22 : -13;
-      segment(-3,-12,backFoot,-2,'#778d99',5);
-      segment(backFoot-2,-2,backFoot+3,-2,'#222832',3);
-      segment(3,-12,frontFoot,-2,'#aec0c4',5);
-      segment(frontFoot-2,-2,frontFoot+4,-2,'#303744',3);
+      const drawLeg = (hip, foot, depth, trouser, shoe) => {
+        const knee = Math.round((hip+foot)/2)+2;
+        segment(hip,-13,knee,-7+depth,trouser,5);
+        segment(knee,-7+depth,foot,-3+depth,trouser,4);
+        ctx.fillStyle=shoe;
+        ctx.fillRect(foot-2,-4+depth,5,3);
+        ctx.fillRect(foot+2,-3+depth,4,2);
+        ctx.fillStyle='#18212a';
+        ctx.fillRect(foot-2,-1+depth,8,1);
+      };
+      // Both knees and both toes point toward the same side as the face.
+      drawLeg(2,backFoot+1,-2,'#778d99','#222832');
+      drawLeg(-3,frontFoot-1,0,'#aec0c4','#303744');
       segment(-6,-22,backHand-2,-14,'#15485d',5);
       ctx.fillStyle='#bb8467';
       ctx.fillRect(backHand-4,-15,3,3);
