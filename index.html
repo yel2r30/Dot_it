@@ -39,8 +39,9 @@
   <div class="page-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="Dot_it 홈"><span class="brand-symbol" aria-hidden="true">▦</span><span>Dot<span class="brand-accent">_</span>it</span></a>
-      <div class="topbar-right"><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">라이트 모드</button><span class="edition">PIXEL CHARACTER PLAYGROUND</span><span class="build-pill"><span class="signal-dot"></span> DEV-002 · LOCAL</span></div>
+      <div class="topbar-right"><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">라이트 모드</button><button id="googleAccount" class="theme-toggle" type="button" aria-describedby="accountStatus">Google로 로그인</button></div>
     </header>
+    <p id="accountStatus" class="inline-notice" role="status" hidden></p>
 
     <main class="workspace">
       <aside class="editor panel" aria-labelledby="editor-title">
@@ -342,5 +343,6 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
   <script type="module" src="./js/app.js?v=local-save-1"></script>
+  <script type="module" src="./js/google-account.js?v=1"></script>
 </body>
 </html>
