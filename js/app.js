@@ -1,9 +1,9 @@
 import { Playground } from './game.js?v=damage-death-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
-import { monsterPng } from './demo-monster.js';
+import { createHumanDemo } from './demo-human.js';
 
-const demoRanges = {idle:[0,8],special:[8,6],walk:[16,5],attack:[24,8],damage:[32,4],death:[40,5]};
+const demoRanges = {idle:[0,6],special:[6,6],walk:[12,6],attack:[18,6],damage:[24,4],death:[30,6]};
 let imageLoad = 0;
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -12,7 +12,7 @@ const animationTypes = ['idle', 'walk', 'special', 'attack', 'damage', 'death'];
 const optionalTypes = ['special', 'attack', 'damage', 'death'];
 const ids = ['frameWidth', 'frameHeight', 'anchorX', 'anchorY', 'specialDelay', 'specialRepeat',
   ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps', 'Width', 'Height', 'AnchorX', 'AnchorY'].map(field => type + field))];
-const state = { image: null, fileName: 'DEMO / Monster', selected: 'idle', game: null, timeline: null };
+const state = { image: null, fileName: 'DEMO / Human', selected: 'idle', game: null, timeline: null };
 const actionSheets = new Map();
 const timings = Object.fromEntries(animationTypes.map(type => [type, { enabled: false, values: {} }]));
 const selectedFrames = Object.fromEntries(animationTypes.map(type => [type, 0]));
@@ -314,24 +314,15 @@ function apply() {
     drawSheet();
   } catch(e) { notice(e.message,true); }
 }
-async function useDemo() {
-  const load = ++imageLoad;
-  const image = new Image();
-  image.src = monsterPng;
-  try {
-    await image.decode();
-  } catch {
-    if (load === imageLoad) notice('데모 PNG를 불러오지 못했습니다.',true);
-    return;
-  }
-  if (load !== imageLoad) return;
+function useDemo() {
+  ++imageLoad;
   for (const type of animationTypes) clearActionSheet(type);
   $('anchorX').value='';
   $('anchorY').value='';
-  state.image=image;state.fileName='DEMO / Monster';
+  state.image=createHumanDemo();state.fileName='DEMO / Human';
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
   resetTimingSettings();
-  resetOptionalAnimations(48);
+  resetOptionalAnimations(36);
   $('frameWidth').value='48';
   $('frameHeight').value='48';
   $('sourceFacing').value='right';
