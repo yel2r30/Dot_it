@@ -1,27 +1,30 @@
-import { Playground } from './game.js?v=dev001-frame-timing-4';
+import { Playground } from './game.js?v=dev001-timeline-5';
+import { TimelineEditor } from './timeline.js?v=dev001-timeline-5';
 
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_DIMENSION = 2048;
 const ids = ['frameWidth','frameHeight','idleStart','idleCount','idleFps','walkStart','walkCount','walkFps'];
-const state = { image: null, demo: true, fileName: 'DEMO / Penguin', selected: 'idle', frames: { idle:{start:0,count:4,fps:4},walk:{start:6,count:6,fps:8} }, frameWidth:32, frameHeight:32, game:null };
+const state = { image: null, demo: true, fileName: 'DEMO / Penguin', selected: 'idle', frames: { idle:{start:0,count:4,fps:4},walk:{start:6,count:6,fps:8} }, frameWidth:32, frameHeight:32, game:null, timeline:null };
 const timings = {
   idle: { enabled: false, values: {} },
   walk: { enabled: false, values: {} }
 };
+const selectedFrames = {idle:0,walk:0};
 let previewFrame = 0;
 let previewFacing = 'right';
-let previewElapsed = 0;
+let previewTime = 0;
+let previewPlaying = true;
 let lastPreviewTime = 0;
 function resetPreviewClock() {
-  previewFrame = 0;
-  previewElapsed = 0;
-  lastPreviewTime = 0;
+  previewFrame=0;previewTime=0;lastPreviewTime=0;
+  state.timeline?.setPlayhead(0);
 }
 function resetTimingSettings() {
-  for (const type of ['idle','walk']) {
-    timings[type].enabled = false;
-    timings[type].values = {};
+  for(const type of ['idle','walk']){
+    timings[type].enabled=false;
+    timings[type].values={};
+    selectedFrames[type]=0;
   }
 }
 function baseFrameTime(type) {
@@ -33,57 +36,82 @@ function frameTime(type, absoluteIndex) {
     ? timings[type].values[absoluteIndex]
     : baseFrameTime(type);
 }
+function animationDurations(a) {
+  return a.perFrame ? [...a.durations] : Array(a.count).fill(1000/a.fps);
+}
+function refreshInspector() {
+  const type=state.selected;
+  try {
+    const a=computeLayout().animations[type];
+    const selected=Math.max(0,Math.min(a.count-1,selectedFrames[type]));
+    selectedFrames[type]=selected;
+    const time=a.perFrame?a.durations[selected]:Math.round(1000/a.fps);
+    $('timelineSelectedName').textContent='프레임 #'+(a.start+selected);
+    $('timelineSelectedOrder').textContent=(selected+1)+' / '+a.count;
+    $('selectedFrameTime').value=String(time);
+    $('selectedFrameTime').disabled=!a.perFrame;
+    $('resetFrameTimes').disabled=!a.perFrame;
+    $('timelineModeHint').textContent=a.perFrame
+      ? '키프레임(◆)을 움직여 프레임 유지 시간을 조절해 보세요.'
+      : '전체 FPS 재생 중 · 프레임별 시간 편집을 켜면 경계를 조절할 수 있습니다.';
+  } catch(e) {
+    $('timelineModeHint').textContent=e.message;
+    $('selectedFrameTime').disabled=true;
+  }
+}
 function renderFrameTimes() {
   const type=state.selected;
-  const enabled=timings[type].enabled;
-  $('perFrameToggle').checked=enabled;
-  $('frameTimingEditor').hidden=!enabled;
-  const list=$('frameTimingList');
-  list.replaceChildren();
-  if(!enabled) return;
-  const start=Number($(type+'Start').value),count=Number($(type+'Count').value);
-  const w=Number($('frameWidth').value),h=Number($('frameHeight').value);
-  const image=state.image;
-  if (!image||![start,count,w,h].every(Number.isInteger)||start<0||count<1||count>24
-      ||w<=0||h<=0||image.width%w!==0||image.height%h!==0
-      ||start+count>image.width/w*(image.height/h)) {
-    list.textContent='프레임 크기, 시작 번호, 개수를 먼저 확인해 주세요.';
-    return;
-  }
-  const cols=image.width/w;
-  for(let i=0;i<count;i++) {
-    const absolute=start+i;
-    const row=document.createElement('div');row.className='frame-time-row';
-    const thumb=document.createElement('canvas');
-    thumb.className='frame-time-thumbnail';thumb.width=48;thumb.height=48;
-    const g=thumb.getContext('2d');
-    g.imageSmoothingEnabled=false;
-    const factor=Math.min(48/w,48/h);
-    const dw=Math.max(1,Math.round(w*factor)),dh=Math.max(1,Math.round(h*factor));
-    g.drawImage(image,(absolute%cols)*w,Math.floor(absolute/cols)*h,w,h,(48-dw)/2,(48-dh)/2,dw,dh);
-    const label=document.createElement('div');
-    label.className='frame-time-title';
-    label.textContent='프레임 '+absolute;
-    const detail=document.createElement('small');
-    detail.textContent=(i+1)+' / '+count;
-    label.appendChild(detail);
-    const inputLabel=document.createElement('label');
-    inputLabel.className='frame-time-input-label';
-    const input=document.createElement('input');
-    input.type='number';input.min='20';input.max='3000';input.step='10';
-    input.value=String(frameTime(type,absolute));
-    input.setAttribute('aria-label',type.toUpperCase()+' 프레임 '+absolute+' 재생 시간(ms)');
-    input.addEventListener('input',()=>{
-      timings[type].values[absolute]=input.value===''?NaN:Number(input.value);
-      resetPreviewClock();
-      syncPreviewInfo();
-      try { computeLayout(); notice('프레임 재생 시간이 변경되었습니다. 미리보기 확인 후 적용하기를 눌러 주세요.'); }
-      catch(e) { notice(e.message,true); }
+  $('perFrameToggle').checked=timings[type].enabled;
+  $('frameTimingEditor').hidden=false;
+  if(!state.timeline)return;
+  try {
+    const data=computeLayout();
+    const a=data.animations[type];
+    selectedFrames[type]=Math.max(0,Math.min(a.count-1,selectedFrames[type]));
+    state.timeline.render({
+      image:data.image,width:data.width,height:data.height,columns:data.columns,
+      start:a.start,count:a.count,durations:animationDurations(a),
+      editable:a.perFrame,selected:selectedFrames[type]
     });
-    inputLabel.append(input,document.createTextNode('ms'));
-    row.append(thumb,label,inputLabel);
-    list.appendChild(row);
+    refreshInspector();
+    state.timeline.setPlayhead(previewTime);
+  }catch(e){
+    $('timelineModeHint').textContent=e.message;
   }
+}
+function setPreviewPlaying(value) {
+  previewPlaying=Boolean(value);
+  lastPreviewTime=0;
+  $('timelinePlayPause').textContent=previewPlaying?'Ⅱ':'▶';
+  $('timelinePlayPause').setAttribute('aria-label',previewPlaying?'일시정지':'재생');
+  $('timelinePlayPause').setAttribute('aria-pressed',String(previewPlaying));
+}
+function seekPreview(ms) {
+  const total=Math.max(1,state.timeline?.getTotal()||1);
+  previewTime=Math.max(0,Math.min(total-1,ms));
+  setPreviewPlaying(false);
+  state.timeline?.setPlayhead(previewTime);
+}
+function selectTimelineFrame(index) {
+  const type=state.selected;
+  selectedFrames[type]=Math.max(0,index);
+  state.timeline?.setSelection(selectedFrames[type]);
+  refreshInspector();
+}
+function changeTimelineDuration(index,value,finished) {
+  const type=state.selected;
+  const start=Number($(type+'Start').value);
+  const absolute=start+index;
+  timings[type].values[absolute]=value;
+  selectedFrames[type]=index;
+  try {
+    const a=computeLayout().animations[type];
+    const total=animationDurations(a).reduce((sum,d)=>sum+d,0);
+    previewTime=Math.min(previewTime,Math.max(0,total-1));
+    state.timeline?.setSelection(index);
+    refreshInspector();syncPreviewInfo();
+    if(finished)notice('프레임 #'+absolute+' 시간을 '+value+'ms로 변경했습니다. 광장에 적용하려면 설정 적용하기를 눌러 주세요.');
+  }catch(e){notice(e.message,true);}
 }
 let previewRequest = null;
 
@@ -228,33 +256,30 @@ function animatePreview(timestamp) {
   const c=$('animCanvas'),g=c.getContext('2d');
   g.clearRect(0,0,c.width,c.height);
   let data;
-  try { data=computeLayout(); } catch { return; }
+  try {data=computeLayout();} catch {lastPreviewTime=0;return;}
   const a=data.animations[state.selected];
-  const elapsed=lastPreviewTime ? Math.min(1000,Math.max(0,timestamp-lastPreviewTime)) : 0;
+  const durations=animationDurations(a);
+  const total=durations.reduce((sum,d)=>sum+d,0);
+  const elapsed=lastPreviewTime?Math.min(200,Math.max(0,timestamp-lastPreviewTime)):0;
   lastPreviewTime=timestamp;
-  previewElapsed+=elapsed;
-  let advanced=0;
-  while(advanced<48) {
-    const duration=a.perFrame?a.durations[previewFrame]:1000/a.fps;
-    if(previewElapsed<duration) break;
-    previewElapsed-=duration;
-    previewFrame=(previewFrame+1)%a.count;
-    advanced++;
+  if(previewPlaying)previewTime=(previewTime+elapsed)%total;
+  else previewTime=Math.max(0,Math.min(previewTime,total-1));
+  let passed=0;
+  for(let i=0;i<a.count;i++){
+    if(previewTime<passed+durations[i]||i===a.count-1){previewFrame=i;break;}
+    passed+=durations[i];
   }
-  if(advanced===48) previewElapsed=0;
   const frame=a.start+previewFrame;
-  const duration=a.perFrame?a.durations[previewFrame]:Math.round(1000/a.fps);
+  const duration=Math.round(durations[previewFrame]);
   $('previewFrameTime').textContent='프레임 '+frame+' · '+duration+'ms';
+  $('timelineTimeLabel').textContent=Math.round(previewTime)+' / '+Math.round(total)+'ms';
+  state.timeline?.setPlayhead(previewTime);
   const column=frame%data.columns,row=Math.floor(frame/data.columns);
   const scale=Math.min(4,Math.max(1,Math.floor(130/Math.max(data.width,data.height))));
   const renderW=data.width*scale,renderH=data.height*scale;
   g.imageSmoothingEnabled=false;
-  // Flip the entire preview frame around its centre only for the opposite direction.
   g.save();
-  if(previewFacing!==data.sourceFacing) {
-    g.translate(c.width,0);
-    g.scale(-1,1);
-  }
+  if(previewFacing!==data.sourceFacing){g.translate(c.width,0);g.scale(-1,1);}
   g.drawImage(data.image,column*data.width,row*data.height,data.width,data.height,
     (c.width-renderW)/2,(c.height-renderH)/2,renderW,renderH);
   g.restore();
