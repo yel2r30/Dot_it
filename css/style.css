@@ -145,8 +145,8 @@
   .timeline-inspector>label,.timeline-inspector-title small,.timeline-time-field>span,
   .timeline-duration,.timeline-tick,.timeline-ruler-end,.or) { color: var(--muted); }
 [data-theme="light"] :is(.upload-zone,.sheet-preview-wrap,.mode-tabs,.anim-preview-area,
-  .frame-timing-panel,.timeline-viewport,.timeline-track,.timeline-ruler,.timeline-inspector,
-  .player-card,.status-card,.step-token,.avatar-mark,.keycap) {
+  .direction-settings,.optional-animation-toggle,.frame-timing-panel,.timeline-viewport,
+  .timeline-track,.timeline-ruler,.timeline-inspector,.player-card,.status-card,.step-token,.avatar-mark,.keycap) {
   background-color: #f1f5f9;
   border-color: var(--line);
   color: var(--text);
@@ -173,10 +173,8 @@
   border-color: #a5b8c5;
 }
 [data-theme="light"] .timeline-frame.selected { background: #e4efdf; border-color: var(--accent); }
-[data-theme="light"] :is(.timeline-keyframe,.timeline-keyframe:hover) { background: #587384; }
-[data-theme="light"] .sheet-scroll {
-  background: repeating-conic-gradient(#d4dfe8 0% 25%,#eaf0f5 0% 50%) 0 0 / 16px 16px;
-}
+[data-theme="light"] .timeline-keyframe { background: #fff; border-color: #77946c; }
+[data-theme="light"] .timeline-keyframe:hover { background: #e4efdf; }
 [data-theme="light"] .inline-notice { color: var(--accent); }
 [data-theme="light"] .inline-notice.error { color: #9e302c; }
 @media (max-width: 480px) {
