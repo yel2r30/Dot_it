@@ -41,7 +41,7 @@
           <label>기본 발 기준점 X<input id="anchorX" type="number" min="0" step="1" placeholder="가운데"></label>
           <label>기본 발 기준점 Y<input id="anchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
         </div>
-        <div class="meta-strip"><span id="sheetSize">384 × 288 px</span><span id="frameTotal">48 frames</span></div>
+        <div class="meta-strip"><span id="sheetSize">288 × 288 px</span><span id="frameTotal">36 frames</span></div>
         <div class="sheet-preview-wrap">
           <div class="preview-heading"><strong>시트 미리보기</strong><span>칸을 누르면 시작 프레임 선택</span></div>
           <div class="sheet-scroll"><canvas id="sheetCanvas" width="192" height="64" aria-label="스프라이트 시트 격자 미리보기"></canvas></div>
@@ -294,7 +294,7 @@
         <p class="stage-description">WASD 또는 방향키로 이동 · J 공격 · K 피격 · L 사망 · R 부활</p>
         <div class="stage-frame"><div id="gameMount" class="game-mount" aria-label="캐릭터 조작용 게임 화면"></div><div class="stage-corner stage-corner-tl"></div><div class="stage-corner stage-corner-br"></div></div>
         <div class="stage-footer">
-          <div class="player-card"><span class="avatar-mark">◆</span><div><small>ACTIVE CHARACTER</small><strong id="activeCharacter">DEMO / Monster</strong></div></div>
+          <div class="player-card"><span class="avatar-mark">◆</span><div><small>ACTIVE CHARACTER</small><strong id="activeCharacter">DEMO / Human</strong></div></div>
           <div class="status-card"><small>CURRENT STATE</small><strong id="movementStatus">IDLE</strong></div>
           <div class="status-card"><small>POSITION</small><strong id="positionStatus">480, 280</strong></div>
           <div class="status-card"><small>FACING</small><strong id="facingStatus">RIGHT → · ORIGINAL</strong></div>
@@ -309,6 +309,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=damage-death-1"></script>
+  <script type="module" src="./js/app.js?v=human-demo-1"></script>
 </body>
 </html>
