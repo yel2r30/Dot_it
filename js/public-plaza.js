@@ -3,6 +3,7 @@ import { firebaseConfig } from './firebase-config.js?v=plaza-1';
 const sdk='https://www.gstatic.com/firebasejs/12.19.0/';
 const slots=8;
 const leaseMs=45000;
+const guestAppName='dot-it-plaza-guest';
 const allowedActions=new Set(['idle','walk','special','attack','damage','death']);
 
 export function setupPublicPlaza(game, createDemo, ranges) {
@@ -46,12 +47,22 @@ export function setupPublicPlaza(game, createDemo, ranges) {
         import(sdk+'firebase-app.js'),import(sdk+'firebase-auth.js'),import(sdk+'firebase-database.js')
       ]);
       if (session!==current) return;
-      const firebase=app.getApps().length ? app.getApp() : app.initializeApp(firebaseConfig);
-      const account=auth.getAuth(firebase);
+      let firebase=app.getApps().find(instance=>instance.name==='[DEFAULT]') ?? app.initializeApp(firebaseConfig);
+      let account=auth.getAuth(firebase);
       await account.authStateReady();
       if (session!==current) return;
+      if (!account.currentUser) {
+        // Keep the guest session separate from the site's Google login.
+        firebase=app.getApps().find(instance=>instance.name===guestAppName) ??
+          app.initializeApp(firebaseConfig,guestAppName);
+        account=auth.getAuth(firebase);
+        await account.authStateReady();
+        if (session!==current) return;
+        if (!account.currentUser) await auth.signInAnonymously(account);
+      }
+      if (session!==current) return;
       const user=account.currentUser;
-      if (!user) {await stop('상단의 Google로 로그인 버튼으로 로그인한 뒤 입장해 주세요.');return;}
+      const guest=user.isAnonymous;
       const demo=await createDemo();
       if (session!==current) return;
       game.enterTestRoom(demo,ranges);
@@ -66,9 +77,11 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       const initial=(await db.get(plaza)).val() ?? {};
       if (session!==current) return;
       const payload=()=>({...game.plazaPose(),uid:user.uid,session:current.id,at:db.serverTimestamp()});
-      const offset=await db.get(db.ref(database,'.info/serverTimeOffset'));
-      if (session!==current) return;
-      const now=()=>Date.now()+(Number(offset.val())||0);
+      let offset=0;
+      current.subscriptions.push(db.onValue(db.ref(database,'.info/serverTimeOffset'),snapshot=>{
+        offset=Number(snapshot.val())||0;
+      }));
+      const now=()=>Date.now()+offset;
       const active=pose=>pose && Number.isFinite(pose.at) && pose.at>=now()-leaseMs;
       for (let index=0;index<slots;index++) {
         const key=String(index);
@@ -87,7 +100,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       if (!current.slot) {await stop('광장 8자리가 모두 찼습니다. 잠시 뒤 다시 시도해 주세요.');return;}
       clearTimeout(current.timeout);
       const updateCount=()=>{
-        status.textContent='공용 광장 · '+(current.remotes.size+1)+' / '+slots+'명';
+        status.textContent=(guest?'게스트로 입장':'공용 광장')+' · '+(current.remotes.size+1)+' / '+slots+'명';
       };
       const remove=key=>{
         current.remotes.delete(key);
