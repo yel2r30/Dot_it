@@ -1,7 +1,7 @@
 import { Playground } from './game.js?v=special-loop-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
-import { createHumanDemo } from './demo-human.js?v=5';
+import { createHumanDemo } from './demo-human.js?v=6';
 
 const demoRanges = {idle:[0,6],special:[6,6],walk:[12,6],attack:[18,6],damage:[24,4],death:[30,6]};
 let imageLoad = 0;
@@ -12,7 +12,7 @@ const animationTypes = ['idle', 'walk', 'special', 'attack', 'damage', 'death'];
 const optionalTypes = ['special', 'attack', 'damage', 'death'];
 const ids = ['frameWidth', 'frameHeight', 'anchorX', 'anchorY', 'specialDelay', 'specialRepeat',
   ...animationTypes.flatMap(type => ['Start', 'Count', 'Fps', 'Width', 'Height', 'AnchorX', 'AnchorY'].map(field => type + field))];
-const state = { image: null, fileName: 'DEMO / Human', selected: 'idle', game: null, timeline: null };
+const state = { image: null, fileName: 'DEMO / df', selected: 'idle', game: null, timeline: null };
 const actionSheets = new Map();
 const timings = Object.fromEntries(animationTypes.map(type => [type, { enabled: false, values: {} }]));
 const selectedFrames = Object.fromEntries(animationTypes.map(type => [type, 0]));
@@ -318,12 +318,20 @@ function apply() {
     drawSheet();
   } catch(e) { notice(e.message,true); }
 }
-function useDemo() {
-  ++imageLoad;
+async function useDemo() {
+  const load = ++imageLoad;
+  let image;
+  try {
+    image = await createHumanDemo();
+  } catch {
+    if (load===imageLoad) notice('데모 PNG를 불러오지 못했습니다.',true);
+    return;
+  }
+  if (load!==imageLoad) return;
   for (const type of animationTypes) clearActionSheet(type);
   $('anchorX').value='';
   $('anchorY').value='';
-  state.image=createHumanDemo();state.fileName='DEMO / Human';
+  state.image=image;state.fileName='DEMO / df';
   $('spriteFile').value='';$('fileName').textContent='현재: 데모 캐릭터';
   resetTimingSettings();
   resetOptionalAnimations(36);
