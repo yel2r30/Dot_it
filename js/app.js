@@ -1,5 +1,5 @@
-import { Playground } from './game.js?v=dev001-timeline-5';
-import { TimelineEditor } from './timeline.js?v=dev001-timeline-5';
+import { Playground } from './game.js?v=dev001-timeline-6';
+import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
