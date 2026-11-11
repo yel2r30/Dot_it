@@ -1,6 +1,7 @@
 // Dot_it DEV-001 — Phaser scene for the local player.
 const GAME_WIDTH = 960;
 const GAME_HEIGHT = 540;
+const PLAZA_NAME_OFFSET = 36;
 export class Playground {
   constructor(mount, onUpdate) {
     if (!window.Phaser) throw new Error('게임 엔진을 불러오지 못했습니다. 인터넷 연결 후 새로고침해 주세요.');
@@ -131,7 +132,7 @@ export class Playground {
       frame.height/2-(frame.anchorY ?? frame.height))*this.player.scaleY;
     this.player.setFlipX(flipped);
     this.player.setPosition(this.x+(flipped?-offsetX:offsetX),this.y+offsetY);
-    this.plazaName?.setPosition(this.x,this.y+10);
+    this.plazaName?.setPosition(this.x,this.y+PLAZA_NAME_OFFSET);
   }
   notifyState() {
     if (!this.player) return;
@@ -164,7 +165,7 @@ export class Playground {
     }
   }
   createPlazaName(x, y, nickname) {
-    return this.scene.add.text(x,y+10,nickname,{
+    return this.scene.add.text(x,y+PLAZA_NAME_OFFSET,nickname,{
       fontFamily:'system-ui, sans-serif',fontSize:'13px',color:'#fff',
       backgroundColor:'#15242e',padding:{x:4,y:2}
     }).setOrigin(.5,0).setDepth(3);
@@ -214,7 +215,7 @@ export class Playground {
     }
     remote.sprite.setFlipX(pose.flip).setPosition(x,y);
     if (remote.label.text!==nickname) remote.label.setText(nickname);
-    remote.label.setPosition(x,y+10);
+    remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
   }
   roomPose() {
     const match=this.player?.texture?.key?.match(/^dotit-(\w+)-frame-(\d+)$/);
