@@ -139,6 +139,51 @@ export class Playground {
       this.facing, this.player.flipX
     );
   }
+  enterTestRoom(image, ranges) {
+    if (!this.scene || !this.frameData) throw new Error('광장을 불러오는 중입니다. 잠시 뒤 다시 시도해 주세요.');
+    this.roomPreviousData=this.frameData;
+    const size=48;
+    const fps={idle:4,walk:8,special:4,attack:10,damage:10,death:10};
+    const animations=Object.fromEntries(Object.entries(ranges).map(([type,[start,count]])=>[
+      type,{start,count,fps:fps[type]}
+    ]));
+    this.install({image,width:size,height:size,columns:image.width/size,animations,sourceFacing:'right',specialLoop:true});
+    this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y),this.facing,this.player.flipX);
+  }
+  leaveTestRoom() {
+    this.showRoomPlayer(null);
+    if (this.roomPreviousData) {
+      const previous=this.roomPreviousData;
+      this.roomPreviousData=null;
+      this.install(previous);
+    }
+  }
+  roomPose() {
+    const match=this.player?.texture?.key?.match(/^dotit-(\w+)-frame-(\d+)$/);
+    if (!this.roomPreviousData || !match) return null;
+    return {x:Math.round(this.x),y:Math.round(this.y),frame:Number(match[2]),flip:this.player.flipX};
+  }
+  showRoomPlayer(pose) {
+    if (!pose) {
+      this.roomPlayer?.destroy();
+      this.roomLabel?.destroy();
+      this.roomPlayer=this.roomLabel=null;
+      return;
+    }
+    if (!this.roomPreviousData) return;
+    const suffix='-frame-'+pose.frame;
+    const key=this.frameKeys.find(frame=>frame.endsWith(suffix));
+    if (!key) return;
+    const x=Math.max(28,Math.min(GAME_WIDTH-28,pose.x));
+    const y=Math.max(28,Math.min(GAME_HEIGHT-62,pose.y));
+    if (!this.roomPlayer) {
+      this.roomPlayer=this.scene.add.sprite(x,y,key).setScale(2).setDepth(1);
+      this.roomLabel=this.scene.add.text(x,y-52,'상대',{fontSize:'12px',color:'#fff',backgroundColor:'#15242e'})
+        .setOrigin(.5,1).setDepth(3);
+    }
+    this.roomPlayer.setTexture(key).setFlipX(pose.flip).setPosition(x,y);
+    this.roomLabel.setPosition(x,y-52);
+  }
   cloneCanvas(source) {
     const c=document.createElement('canvas');c.width=source.width;c.height=source.height;
     c.getContext('2d').drawImage(source,0,0);return c;
