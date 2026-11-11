@@ -83,3 +83,47 @@ export function drawTownSquare(scene, width, height) {
   }
   return art;
 }
+
+export function drawMoonGarden(scene, width, height) {
+  const art=scene.add.graphics().setDepth(.5);
+  const rect=(x,y,w,h,c,a=1)=>art.fillStyle(c,a).fillRect(x,y,w,h);
+  rect(0,0,width,height,0x243e3d);
+  for(let y=16;y<height;y+=32) for(let x=14;x<width;x+=38) {
+    const offset=(x*13+y*7)%17;
+    rect(x+offset,y,7,2,0x34504a);
+    rect(x+offset+2,y-3,2,3,0x527064);
+  }
+  art.fillStyle(0x283337).fillEllipse(width/2,296,632,334);
+  art.fillStyle(0x4c5c62).fillEllipse(width/2,290,616,320);
+  art.fillStyle(0x67777e).fillEllipse(width/2,289,595,300);
+  for(let row=-5;row<=5;row++) {
+    const span=Math.floor(282*Math.sqrt(1-(row/6)**2));
+    const y=289+row*23;
+    rect(width/2-span,y,span*2,2,0x53656d);
+    for(let x=width/2-span+18;x<width/2+span-18;x+=43)
+      rect(x+(row%2)*10,y-13,2,13,0x53656d);
+  }
+  art.fillStyle(0x293c42).fillEllipse(790,104,220,116);
+  art.fillStyle(0x546c69).fillEllipse(790,98,210,110);
+  art.fillStyle(0x264e61).fillEllipse(790,97,194,94);
+  for(const [x,y,w] of [[730,89,42],[776,71,54],[798,107,56],[748,122,36]])
+    rect(x,y,w,2,0x79a9b4,.7);
+  art.fillStyle(0xadcbd0,.17).fillCircle(790,96,34);
+  rect(770,95,40,3,0xa0c8cd,.65);
+  for(const [x,y] of [[124,108],[823,350],[126,395],[560,99]]) {
+    art.fillStyle(0xf6cd85,.13).fillCircle(x+3,y+8,40);
+    rect(x,y+10,6,43,0x26353a);
+    rect(x-5,y+48,16,6,0x526263);
+    rect(x-5,y,16,14,0x756c54);
+    rect(x-2,y+3,10,8,0xffda91);
+    rect(x-7,y-3,20,3,0x394748);
+  }
+  for(const [x,y] of [[67,219],[801,442]]) {
+    rect(x+3,y+10,87,16,0x1b3134,.65);
+    rect(x+8,y+8,5,17,0x303b3e);
+    rect(x+73,y+8,5,17,0x303b3e);
+    rect(x,y,86,7,0x856956);
+    rect(x,y+8,86,5,0xa1886a);
+  }
+  return art;
+}
