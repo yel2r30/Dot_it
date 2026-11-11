@@ -1,7 +1,7 @@
-import { Playground } from './game.js?v=damage-death-1';
+import { Playground } from './game.js?v=special-loop-1';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
-import { createHumanDemo } from './demo-human.js?v=2';
+import { createHumanDemo } from './demo-human.js?v=3';
 
 const demoRanges = {idle:[0,6],special:[6,6],walk:[12,6],attack:[18,6],damage:[24,4],death:[30,6]};
 let imageLoad = 0;
@@ -190,7 +190,9 @@ function computeLayout(onlyType) {
   if(!['left','right'].includes(sourceFacing))throw new Error('원본 방향을 선택해 주세요.');
   const data = {...sheetSettings(),...animations[onlyType],animations,sourceFacing};
   if (!onlyType && animations.special) {
+    data.specialLoop = $('specialLoop').checked;
     for (const [id, property] of [['specialDelay', 'specialDelayMs'], ['specialRepeat', 'specialRepeatMs']]) {
+      if (data.specialLoop && id==='specialRepeat') continue;
       const seconds = Number($(id).value);
       if (!Number.isInteger(seconds) || seconds < 1 || seconds > 600)
         throw new Error('특별 IDLE 대기 시간과 재발동 간격은 1~600초 사이의 정수여야 합니다.');
@@ -302,7 +304,9 @@ function resetOptionalAnimations(total) {
     $(type+'Fps').value=type==='special'?'6':'10';
   }
   $('specialDelay').value='30';
-  $('specialRepeat').value='60';
+  $('specialRepeat').value='30';
+  $('specialRepeat').disabled=false;
+  $('specialLoop').checked=false;
 }
 
 function apply() {
@@ -328,6 +332,7 @@ function useDemo() {
   $('sourceFacing').value='right';
   $('idleFps').value='4';
   $('walkFps').value='8';
+  $('specialFps').value='4';
   for (const [type,[start,count]] of Object.entries(demoRanges)) {
     $(type+'Start').value=String(start);
     $(type+'Count').value=String(count);
@@ -455,6 +460,10 @@ function init() {
       notice('설정이 변경되었습니다. 적용하기를 눌러 게임에 반영하세요.');
     });
   }
+  $('specialLoop').addEventListener('change',event=>{
+    $('specialRepeat').disabled=event.target.checked;
+    notice('특별 IDLE 설정이 변경되었습니다. 광장에 반영하려면 설정을 적용하세요.');
+  });
   $('applyButton').addEventListener('click',apply);
   $('perFrameToggle').addEventListener('change',ev=>{
     timings[state.selected].enabled=ev.target.checked;
