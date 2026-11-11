@@ -35,7 +35,7 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
     try {
       if (current.slot) {
         const remove=current.db.runTransaction(current.slot,pose=>
-          pose?.session===current.id ? null : undefined,{applyLocally:false});
+          pose?.pose?.session===current.id ? null : undefined,{applyLocally:false});
         await Promise.race([remove,new Promise(resolve=>setTimeout(resolve,1500))]);
       }
     } catch {} finally {
@@ -102,10 +102,13 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
       const database=current.database=db.getDatabase(firebase,firebaseConfig.databaseURL);
       current.db=db;
       db.goOnline(database);
-      const plaza=db.ref(database,'plazaV1');
-      const initial=(await db.get(plaza)).val() ?? {};
+      const plaza=db.ref(database,'plazaV2');
+      const seats=Array.from({length:slots},(_,index)=>db.child(plaza,String(index)));
+      const poseRefs=seats.map(seat=>db.child(seat,'pose'));
+      const initial=await Promise.all(poseRefs.map(async ref=>(await db.get(ref)).val()));
       if (session!==current) return;
-      const payload=()=>({...game.plazaPose(),uid:user.uid,nickname,session:current.id,at:db.serverTimestamp(),...(appearance?{appearance}:{})});
+      const payload=()=>({owner:user.uid,pose:{...game.plazaPose(),nickname,session:current.id,
+        at:db.serverTimestamp(),...(appearance?{appearance}:{})}});
       let offset=0;
       current.subscriptions.push(db.onValue(db.ref(database,'.info/serverTimeOffset'),snapshot=>{
         offset=Number(snapshot.val())||0;
@@ -116,11 +119,18 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
         const key=String(index);
         if (active(initial[key])) continue;
         game.placePlazaPlayer(index);
-        const ref=db.child(plaza,key);
-        const result=await db.runTransaction(ref,pose=>active(pose)?undefined:payload(),{applyLocally:false});
+        const ref=seats[index];
+        try {
+          await db.set(ref,payload());
+        } catch (error) {
+          if (session!==current) return;
+          if (!/permission.denied/i.test(error?.code ?? '')) throw error;
+          if (!active((await db.get(poseRefs[index])).val())) throw error;
+          continue;
+        }
         if (session!==current) return;
-        if (!result.committed) continue;
         current.slot=ref;
+        current.poseRef=poseRefs[index];
         current.key=key;
         await db.onDisconnect(ref).remove();
         break;
@@ -136,15 +146,14 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
         game.showPlazaPlayer(key,null);
         updateCount();
       };
-      const receive=snapshot=>{
-        if (session!==current || snapshot.key===current.key) return;
+      const receive=(key,snapshot)=>{
+        if (session!==current || key===current.key) return;
         const pose=snapshot.val();
         if (!active(pose) || !allowedActions.has(pose.action) ||
             !Number.isFinite(pose.x) || !Number.isFinite(pose.y) || typeof pose.flip!=='boolean') {
-          remove(snapshot.key);
+          remove(key);
           return;
         }
-        const key=snapshot.key;
         let entry=current.remotes.get(key);
         if (!entry || entry.pose.session!==pose.session) {
           if (entry) game.showPlazaPlayer(key,null);
@@ -163,8 +172,10 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
         updateCount();
       };
       const denied=()=>{if (session===current) void stop('광장 데이터를 읽을 수 없습니다. 다시 입장해 주세요.');};
-      current.subscriptions.push(db.onChildAdded(plaza,receive,denied),db.onChildChanged(plaza,receive,denied),
-        db.onChildRemoved(plaza,snapshot=>{if (session===current) remove(snapshot.key);},denied));
+      for (const [index,poseRef] of poseRefs.entries()) {
+        const key=String(index);
+        if (key!==current.key) current.subscriptions.push(db.onValue(poseRef,snapshot=>receive(key,snapshot),denied));
+      }
       current.subscriptions.push(db.onValue(db.ref(database,'.info/connected'),snapshot=>{
         if (session===current && snapshot.val()===false) void stop('연결이 끊겼습니다. 다시 입장해 주세요.');
       }));
@@ -178,7 +189,7 @@ export function setupPublicPlaza(game, createDemo, ranges, selectCharacter) {
         if (!pose || pending || (encoded===last && Date.now()-sentAt<12000)) return;
         pending=true;
         try {
-          await db.update(current.slot,{...pose,at:db.serverTimestamp()});
+          await db.update(current.poseRef,{...pose,at:db.serverTimestamp()});
           last=encoded;
           sentAt=Date.now();
         } catch {
