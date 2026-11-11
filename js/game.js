@@ -2,6 +2,7 @@
 const GAME_WIDTH = 960;
 const GAME_HEIGHT = 540;
 const PLAZA_NAME_OFFSET = 36;
+const PLAZA_MOVE_MS = 200;
 export class Playground {
   constructor(mount, onUpdate) {
     if (!window.Phaser) throw new Error('게임 엔진을 불러오지 못했습니다. 인터넷 연결 후 새로고침해 주세요.');
@@ -205,7 +206,7 @@ export class Playground {
     if (!remote) {
       const sprite=this.scene.add.sprite(x,y,key+'-frame-'+info.start).setScale(2).setDepth(1);
       const label=this.createPlazaName(x,y,nickname);
-      remote={sprite,label};
+      remote={sprite,label,targetX:x,targetY:y,moveTime:PLAZA_MOVE_MS};
       this.plazaPlayers.set(id,remote);
     }
     if (remote.action!==pose.action || remote.session!==pose.session) {
@@ -213,9 +214,26 @@ export class Playground {
       remote.action=pose.action;
       remote.session=pose.session;
     }
-    remote.sprite.setFlipX(pose.flip).setPosition(x,y);
+    remote.sprite.setFlipX(pose.flip);
     if (remote.label.text!==nickname) remote.label.setText(nickname);
-    remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
+    if (remote.targetX!==x || remote.targetY!==y) {
+      remote.startX=remote.sprite.x;
+      remote.startY=remote.sprite.y;
+      remote.targetX=x;
+      remote.targetY=y;
+      remote.moveTime=0;
+    }
+  }
+  updatePlazaPlayers(dt) {
+    for (const remote of this.plazaPlayers?.values() ?? []) {
+      if (remote.moveTime>=PLAZA_MOVE_MS) continue;
+      remote.moveTime=Math.min(PLAZA_MOVE_MS,remote.moveTime+dt);
+      const t=remote.moveTime/PLAZA_MOVE_MS;
+      const x=remote.startX+(remote.targetX-remote.startX)*t;
+      const y=remote.startY+(remote.targetY-remote.startY)*t;
+      remote.sprite.setPosition(x,y);
+      remote.label.setPosition(x,y+PLAZA_NAME_OFFSET);
+    }
   }
   roomPose() {
     const match=this.player?.texture?.key?.match(/^dotit-(\w+)-frame-(\d+)$/);
@@ -277,6 +295,7 @@ export class Playground {
     }
   }
   update(dt) {
+    this.updatePlazaPlayers(dt);
     if (!this.player || !this.cursors || !this.frameData) return;
     const editing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
     const pressed = Phaser.Input.Keyboard.JustDown;
