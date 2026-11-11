@@ -17,7 +17,6 @@ function isEnabled(type) {
   return !optionalTypes.includes(type) || $(type + 'Enabled').checked;
 }
 let previewFrame = 0;
-let previewFacing = 'right';
 let previewTime = 0;
 let previewPlaying = true;
 let lastPreviewTime = 0;
@@ -258,20 +257,6 @@ function drawSheet() {
     }
   }
 }
-function setPreviewFacing(direction) {
-  previewFacing=direction;
-  for(const d of ['left','right']) {
-    const element=$(d==='left'?'previewLeft':'previewRight');
-    element.classList.toggle('active',d===direction);
-    element.setAttribute('aria-pressed',String(d===direction));
-  }
-  updateMirrorLabel();
-}
-function updateMirrorLabel() {
-  const source=sheetSettings(state.selected).sourceFacing ?? $('sourceFacing').value;
-  const mirrored=previewFacing!==source;
-  $('previewMirrorStatus').textContent=mirrored?'좌우 반전 적용됨':'원본 방향 그대로';
-}
 function syncPreviewInfo() {
   $('previewTitle').textContent=state.selected==='special'?'SPECIAL IDLE':state.selected.toUpperCase();
   if (!isEnabled(state.selected)) {
@@ -285,7 +270,6 @@ function syncPreviewInfo() {
 }
 function selectMode(mode) {
   state.selected=mode;
-  updateMirrorLabel();
   for(const type of animationTypes){
     $(type+'Tab').classList.toggle('active',type===mode);
     $(type+'Tab').setAttribute('aria-pressed',String(type===mode));
@@ -332,7 +316,6 @@ function animatePreview(timestamp) {
   g.imageSmoothingEnabled=false;
   g.save();
   g.translate(c.width/2,footY);
-  if(previewFacing!==(a.sourceFacing ?? data.sourceFacing))g.scale(-1,1);
   g.drawImage(data.image,column*data.width,row*data.height,data.width,data.height,
     -data.anchorX*scale,-data.anchorY*scale,data.width*scale,data.height*scale);
   g.restore();
@@ -354,7 +337,6 @@ function resetDefaults(demo=false) {
   $('idleStart').value='0';$('idleCount').value='4';$('idleFps').value='4';
   $('walkStart').value=demo?'6':'0';$('walkCount').value=demo?'6':'4';$('walkFps').value='8';
   $('sourceFacing').value='right';
-  setPreviewFacing('right');
   resetPreviewClock();syncPreviewInfo();
 }
 function apply() {
@@ -471,7 +453,6 @@ function init() {
     $(type+'Tab').addEventListener('click',()=>selectMode(type));
     $(type+'Sheet').addEventListener('change',event=>loadActionSheet(type,event.target));
     $(type+'SourceFacing').addEventListener('change',event=>{
-      updateMirrorLabel();
       event.target.blur();
       notice('별도 시트의 원본 방향이 변경되었습니다. 광장에 반영하려면 설정을 적용하세요.');
     });
@@ -530,8 +511,6 @@ function init() {
     const index=(selectedFrames[type]+1)%count;
     selectTimelineFrame(index);seekPreview(state.timeline?.getStart(index)||0);
   });
-  $('previewLeft').addEventListener('click',()=>setPreviewFacing('left'));
-  $('previewRight').addEventListener('click',()=>setPreviewFacing('right'));
   state.timeline=new TimelineEditor({
     viewport:$('timelineViewport'),track:$('timelineTrack'),
     ruler:$('timelineRuler'),frames:$('timelineFrames'),
@@ -549,7 +528,6 @@ function init() {
   $('sourceFacing').addEventListener('change',()=>{
     // Apply immediately to both the preview and the active sprite.
     const source=$('sourceFacing').value;
-    setPreviewFacing(source);
     state.game.setSourceFacing(source);
     // A focused SELECT blocks movement keys; release focus after the choice.
     $('sourceFacing').blur();
