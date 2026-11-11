@@ -7,7 +7,7 @@ import { saveCharacter, loadCharacter } from './character-storage.js';
 
 import { setupTestRoom } from './test-room.js?v=1';
 
-import { setupPublicPlaza } from './public-plaza.js?v=10';
+import { setupPublicPlaza } from './public-plaza.js?v=11';
 
 let testRoom;
 let publicPlaza;
