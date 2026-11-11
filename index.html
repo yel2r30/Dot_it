@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#10161d">
   <meta name="description" content="Dot_it — 내가 만든 픽셀 캐릭터를 업로드하고 움직이는 도트 애니메이션 놀이터">
   <title>Dot_it | Pixel Character Playground</title>
-  <link rel="stylesheet" href="./css/style.css?v=action-sheets-5">
+  <link rel="stylesheet" href="./css/style.css?v=damage-death-1">
 </head>
 <body>
   <div class="page-shell">
@@ -63,6 +63,8 @@
           <button id="walkTab" class="mode-tab" type="button" aria-pressed="false">WALK <span>걷기</span></button>
           <button id="specialTab" class="mode-tab" type="button" aria-pressed="false">SPECIAL <span>특별 대기</span></button>
           <button id="attackTab" class="mode-tab" type="button" aria-pressed="false">ATTACK <span>공격</span></button>
+          <button id="damageTab" class="mode-tab" type="button" aria-pressed="false">DAMAGE <span>피격</span></button>
+          <button id="deathTab" class="mode-tab" type="button" aria-pressed="false">DEATH <span>사망</span></button>
         </div>
         <div class="animation-fields" id="idleFields">
           <p class="field-context">IDLE · 움직이지 않을 때 반복 재생</p>
@@ -176,6 +178,62 @@
             <p class="field-context">공격 중 이동할 수 있으며 모션을 우선 재생합니다. J키 홀드 반복 공격은 없습니다.</p>
           </div>
         </div>
+        <div class="animation-fields" id="damageFields" hidden>
+          <p class="field-context">DAMAGE · K 키로 피격 재생</p>
+          <label class="optional-animation-toggle"><input id="damageEnabled" type="checkbox"><span>피격 애니메이션 사용 <small>피격 시트가 없으면 비활성화해도 됩니다.</small></span></label>
+          <div class="optional-animation-config" id="damageOptions" hidden>
+            <details class="optional-animation-config">
+            <summary>이 동작의 별도 PNG 시트 <input class="action-sheet-file" id="damageSheet" type="file" accept="image/png,.png" aria-label="이 동작의 별도 PNG 파일 선택"></summary>
+            <div class="fields two" id="damageSheetGeometry" hidden>
+              <label>프레임 너비<input id="damageWidth" type="number" min="8" max="256" step="1"></label>
+              <label>프레임 높이<input id="damageHeight" type="number" min="8" max="256" step="1"></label>
+              <label>발 기준점 X<input id="damageAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+              <label>발 기준점 Y<input id="damageAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <label>별도 PNG가 보는 방향
+                <select id="damageSourceFacing">
+                  <option value="">기본 시트와 같음</option>
+                  <option value="right">오른쪽 (→)</option>
+                  <option value="left">왼쪽 (←)</option>
+                </select>
+              </label>
+              <button id="damageClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
+            </div>
+          </details>
+          <div class="fields three">
+              <label>시작 번호<input id="damageStart" type="number" min="0" step="1" value="0"></label>
+              <label>프레임 수<input id="damageCount" type="number" min="1" max="24" step="1" value="4"></label>
+              <label>FPS<input id="damageFps" type="number" min="1" max="24" step="1" value="10"></label>
+            </div>
+          </div>
+        </div>
+        <div class="animation-fields" id="deathFields" hidden>
+          <p class="field-context">DEATH · L 키로 사망 재생 · R 키로 부활</p>
+          <label class="optional-animation-toggle"><input id="deathEnabled" type="checkbox"><span>사망 애니메이션 사용 <small>사망 시트가 없으면 비활성화해도 됩니다.</small></span></label>
+          <div class="optional-animation-config" id="deathOptions" hidden>
+            <details class="optional-animation-config">
+            <summary>이 동작의 별도 PNG 시트 <input class="action-sheet-file" id="deathSheet" type="file" accept="image/png,.png" aria-label="이 동작의 별도 PNG 파일 선택"></summary>
+            <div class="fields two" id="deathSheetGeometry" hidden>
+              <label>프레임 너비<input id="deathWidth" type="number" min="8" max="256" step="1"></label>
+              <label>프레임 높이<input id="deathHeight" type="number" min="8" max="256" step="1"></label>
+              <label>발 기준점 X<input id="deathAnchorX" type="number" min="0" step="1" placeholder="가운데"></label>
+              <label>발 기준점 Y<input id="deathAnchorY" type="number" min="0" step="1" placeholder="맨 아래"></label>
+              <label>별도 PNG가 보는 방향
+                <select id="deathSourceFacing">
+                  <option value="">기본 시트와 같음</option>
+                  <option value="right">오른쪽 (→)</option>
+                  <option value="left">왼쪽 (←)</option>
+                </select>
+              </label>
+              <button id="deathClearSheet" type="button" class="text-button">기본 시트로 돌아가기</button>
+            </div>
+          </details>
+          <div class="fields three">
+              <label>시작 번호<input id="deathStart" type="number" min="0" step="1" value="0"></label>
+              <label>프레임 수<input id="deathCount" type="number" min="1" max="24" step="1" value="4"></label>
+              <label>FPS<input id="deathFps" type="number" min="1" max="24" step="1" value="10"></label>
+            </div>
+          </div>
+        </div>
         <p class="field-context">발 기준점은 프레임 왼쪽 위부터 잰 픽셀 좌표입니다. 시트가 달라도 캐릭터를 같은 픽셀 크기로 그리고, 각 프레임의 발 위치를 맞춰 주세요.</p>
         <div class="frame-timing-panel">
           <div class="timeline-title"><strong>애니메이션 타임라인</strong><span>UNITY-STYLE / DOPE SHEET</span></div>
@@ -233,7 +291,7 @@
           <div><p class="eyebrow">02 / LIVE PLAYGROUND</p><h2 id="stage-title">픽셀 광장</h2></div>
           <span class="stage-tag"><span class="signal-dot"></span> 1 PLAYER</span>
         </div>
-        <p class="stage-description">캐릭터를 움직이거나 J로 공격할 수 있어요. 특별 IDLE을 등록하면 일정 시간 대기 후 자동 재생됩니다.</p>
+        <p class="stage-description">WASD 또는 방향키로 이동 · J 공격 · K 피격 · L 사망 · R 부활</p>
         <div class="stage-frame"><div id="gameMount" class="game-mount" aria-label="캐릭터 조작용 게임 화면"></div><div class="stage-corner stage-corner-tl"></div><div class="stage-corner stage-corner-br"></div></div>
         <div class="stage-footer">
           <div class="player-card"><span class="avatar-mark">◆</span><div><small>ACTIVE CHARACTER</small><strong id="activeCharacter">DEMO / Monster</strong></div></div>
@@ -251,6 +309,6 @@
     <footer class="footer"><span>DOT_IT © 2026 · A SPACE FOR TINY CHARACTERS</span><span>DEV-002 · 파일은 아직 서버에 업로드되지 않습니다.</span></footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-  <script type="module" src="./js/app.js?v=monster-demo-1"></script>
+  <script type="module" src="./js/app.js?v=damage-death-1"></script>
 </body>
 </html>
