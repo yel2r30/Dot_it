@@ -1,4 +1,4 @@
-import { Playground } from './game.js';
+import { Playground } from './game.js?v=dev001-mirror-fix-2';
 
 const $ = id => document.getElementById(id);
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -18,23 +18,30 @@ function createDemo() {
   const canvas=document.createElement('canvas');
   canvas.width=32*6; canvas.height=32*2;
   const g=canvas.getContext('2d');
-  // Original minimalist pixel penguin sprite: four idle poses, six walk poses.
+  // Asymmetric right-facing side-view penguin to make horizontal flip unmistakable.
   for(let i=0;i<12;i++) {
-    const x=(i%6)*32, y=Math.floor(i/6)*32;
+    const x=(i%6)*32,y=Math.floor(i/6)*32;
     const step=i>=6?Math.sin((i-6)/6*Math.PI*2):0;
-    const bob=i>=6?Math.abs(step)*2:(i%4===2?1:0);
-    g.fillStyle='#152e3b';g.fillRect(x+9,y+8-bob,14,17);
-    g.fillRect(x+7,y+13-bob,18,11);
-    g.fillStyle='#deedf0';g.fillRect(x+12,y+14-bob,8,9);
-    g.fillStyle='#263e4c';g.fillRect(x+8,y+7-bob,16,2);
-    g.fillStyle='#f7faf5';g.fillRect(x+12,y+10-bob,3,3);g.fillRect(x+18,y+10-bob,3,3);
-    g.fillStyle='#16232b';g.fillRect(x+13,y+11-bob,1,1);g.fillRect(x+19,y+11-bob,1,1);
-    g.fillStyle='#f4b264';g.fillRect(x+15,y+14-bob,4,3);
-    g.fillStyle='#f0a65c';
-    const leftStep=step>0?2:0,rightStep=step<0?2:0;
-    g.fillRect(x+9-leftStep,y+25,6,3);g.fillRect(x+18+rightStep,y+25,6,3);
-    g.fillStyle='#203846';
-    g.fillRect(x+5,y+16-bob,3,6);g.fillRect(x+24,y+16-bob,3,6);
+    const bob=i>=6?Math.round(Math.abs(step)*2):(i%4===2?1:0);
+    g.fillStyle='#142b39';
+    g.fillRect(x+9,y+7-bob,17,19);
+    g.fillRect(x+7,y+12-bob,20,12);
+    // White front-facing belly (right side of the sprite).
+    g.fillStyle='#e2edf0';
+    g.fillRect(x+19,y+15-bob,7,9);
+    g.fillRect(x+22,y+12-bob,4,4);
+    // Only one eye, near the right edge.
+    g.fillStyle='#fff6ec';g.fillRect(x+21,y+9-bob,3,3);
+    g.fillStyle='#142b39';g.fillRect(x+23,y+10-bob,1,1);
+    // Pointed orange beak extending to the right.
+    g.fillStyle='#f5a24f';g.fillRect(x+26,y+14-bob,5,3);
+    g.fillRect(x+29,y+15-bob,3,1);
+    // Scarf and trailing tail on left to make mirrored state obvious.
+    g.fillStyle='#b8e66f';g.fillRect(x+10,y+14-bob,12,2);g.fillRect(x+5,y+16-bob,5,3);
+    g.fillStyle='#203b4a';g.fillRect(x+7,y+18-bob,3,6);
+    g.fillStyle='#eca35f';
+    g.fillRect(x+10+(step>0?2:0),y+26,7,3);
+    g.fillRect(x+20+(step<0?-2:0),y+26,6,3);
   }
   return canvas;
 }
@@ -94,6 +101,12 @@ function setPreviewFacing(direction) {
     element.classList.toggle('active',d===direction);
     element.setAttribute('aria-pressed',String(d===direction));
   }
+  updateMirrorLabel();
+}
+function updateMirrorLabel() {
+  const source=$('sourceFacing').value;
+  const mirrored=previewFacing!==source;
+  $('previewMirrorStatus').textContent=mirrored?'좌우 반전 적용됨':'원본 방향 그대로';
 }
 function syncPreviewInfo() {
   const type=state.selected.toUpperCase();
@@ -189,10 +202,10 @@ async function handleFile(file) {
 }
 function init() {
   try {
-    state.game=new Playground($('gameMount'),(mode,x,y,facing)=>{
+    state.game=new Playground($('gameMount'),(mode,x,y,facing,flipped)=>{
       $('movementStatus').textContent=mode;
       $('positionStatus').textContent=x+', '+y;
-      $('facingStatus').textContent=facing==='left'?'LEFT ←':'RIGHT →';
+      $('facingStatus').textContent=(facing==='left'?'LEFT ←':'RIGHT →')+(flipped?' · FLIPPED':' · ORIGINAL');
     });
   } catch(e) {notice(e.message,true);return;}
   $('spriteFile').addEventListener('change',ev=>handleFile(ev.target.files?.[0]));
@@ -207,9 +220,11 @@ function init() {
   $('previewLeft').addEventListener('click',()=>setPreviewFacing('left'));
   $('previewRight').addEventListener('click',()=>setPreviewFacing('right'));
   $('sourceFacing').addEventListener('change',()=>{
-    // Default preview to the actual orientation of the uploaded original.
-    setPreviewFacing($('sourceFacing').value);
-    notice('원본 방향이 변경되었습니다. 적용하기를 눌러 캐릭터에 반영하세요.');
+    // Apply immediately to both the preview and the active sprite.
+    const source=$('sourceFacing').value;
+    setPreviewFacing(source);
+    state.game.setSourceFacing(source);
+    notice('원본 방향이 즉시 반영되었습니다. A/D 키로 반전을 확인해 보세요.');
   });
   for(const id of ids) $(id).addEventListener('input',()=>{
     previewFrame=0;lastPreviewTime=0;syncPreviewInfo();drawSheet();
