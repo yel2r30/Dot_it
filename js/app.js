@@ -1,4 +1,4 @@
-import { Playground } from './game.js?v=action-sheets-1';
+import { Playground } from './game.js?v=action-sheets-2';
 import { TimelineEditor } from './timeline.js?v=dev001-timeline-6';
 
 const $ = id => document.getElementById(id);
@@ -179,6 +179,7 @@ function sheetSettings(type) {
   const x = $(custom ? type+'AnchorX' : 'anchorX').value;
   const y = $(custom ? type+'AnchorY' : 'anchorY').value;
   return {image:custom?.image ?? state.image, width, height,
+    sourceFacing:custom ? $(type+'SourceFacing').value || null : null,
     anchorX:x==='' ? width/2 : Number(x), anchorY:y==='' ? height : Number(y)};
 }
 function sheetLayout(type) {
@@ -268,7 +269,7 @@ function setPreviewFacing(direction) {
   updateMirrorLabel();
 }
 function updateMirrorLabel() {
-  const source=$('sourceFacing').value;
+  const source=sheetSettings(state.selected).sourceFacing ?? $('sourceFacing').value;
   const mirrored=previewFacing!==source;
   $('previewMirrorStatus').textContent=mirrored?'좌우 반전 적용됨':'원본 방향 그대로';
 }
@@ -285,6 +286,7 @@ function syncPreviewInfo() {
 }
 function selectMode(mode) {
   state.selected=mode;
+  updateMirrorLabel();
   for(const type of animationTypes){
     $(type+'Tab').classList.toggle('active',type===mode);
     $(type+'Tab').setAttribute('aria-pressed',String(type===mode));
@@ -331,7 +333,7 @@ function animatePreview(timestamp) {
   g.imageSmoothingEnabled=false;
   g.save();
   g.translate(c.width/2,footY);
-  if(previewFacing!==data.sourceFacing)g.scale(-1,1);
+  if(previewFacing!==(a.sourceFacing ?? data.sourceFacing))g.scale(-1,1);
   g.drawImage(data.image,column*data.width,row*data.height,data.width,data.height,
     -data.anchorX*scale,-data.anchorY*scale,data.width*scale,data.height*scale);
   g.restore();
@@ -418,6 +420,7 @@ async function loadActionSheet(type, input) {
     $(type+'Height').value=height;
     $(type+'AnchorX').value='';
     $(type+'AnchorY').value='';
+    if (!previous) $(type+'SourceFacing').value='';
     $(type+'Start').value='0';
     $(type+'Count').value=Math.max(1,Math.min(4,Math.floor(image.width/width)*Math.floor(image.height/height)));
     timings[type].values={};
@@ -468,6 +471,11 @@ function init() {
   for (const type of animationTypes) {
     $(type+'Tab').addEventListener('click',()=>selectMode(type));
     $(type+'Sheet').addEventListener('change',event=>loadActionSheet(type,event.target));
+    $(type+'SourceFacing').addEventListener('change',event=>{
+      updateMirrorLabel();
+      event.target.blur();
+      notice('별도 시트의 원본 방향이 변경되었습니다. 광장에 반영하려면 설정을 적용하세요.');
+    });
     $(type+'ClearSheet').addEventListener('click',()=>{
       clearActionSheet(type);
       selectMode(type);
