@@ -186,3 +186,25 @@
   --sheet-check-base: #24303a;
   --sheet-check-tile: #2d3a45;
 }
+
+.stage-view-controls { display:flex; justify-content:flex-end; padding:0 0 7px; }
+.stage-expansion-active { overflow:hidden; }
+.stage-frame.stage-expanded {
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:8px;
+  border:0;
+  border-radius:0;
+  background:#101820;
+}
+.stage-expanded .stage-view-controls { width:100%; }
+.stage-expanded .game-mount {
+  width:min(100%, calc((100dvh - 62px) * 16 / 9));
+  flex:none;
+}
+.stage-expanded .stage-corner { display:none; }
