@@ -288,7 +288,7 @@ function animatePreview(timestamp) {
   state.timeline?.setPlayhead(previewTime);
   const column=frame%data.columns,row=Math.floor(frame/data.columns);
   // Keep one preview scale and anchor across all enabled actions, including mirrored frames.
-  const sheets=animationTypes.filter(isEnabled).map(sheetSettings).filter(sheet=>
+  const sheets=animationTypes.filter(isEnabled).map(type=>sheetSettings(type)).filter(sheet=>
     sheet.width>=8 && sheet.width<=256 && sheet.height>=8 && sheet.height<=256 &&
     sheet.anchorX>=0 && sheet.anchorX<=sheet.width && sheet.anchorY>=0 && sheet.anchorY<=sheet.height);
   const side=Math.max(...sheets.map(sheet=>Math.max(sheet.anchorX,sheet.width-sheet.anchorX)));
