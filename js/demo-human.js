@@ -25,7 +25,11 @@ export function createHumanDemo() {
   for (const [row,poses] of rows.entries()) {
     for (const [column,[lift,lean,backFoot,frontFoot,backHand,frontHand,effect]] of poses.entries()) {
       ctx.save();
-      ctx.translate(column*size+29,row*size+41+lift);
+      ctx.beginPath();
+      ctx.rect(column*size,row*size,size,size);
+      ctx.clip();
+      const fallShift = row===5 ? Math.round(-lean*9) : 0;
+      ctx.translate(column*size+24+fallShift,row*size+41+lift);
       ctx.rotate(lean);
       const handY = effect==='wave' ? -28 : effect==='strike' ? -22 : -13;
       segment(-3,-12,backFoot,-2,'#253750',4);
