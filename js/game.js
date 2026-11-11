@@ -10,6 +10,7 @@ export class Playground {
     this.animKeys = [];
     this.player = null;
     this.state = 'IDLE';
+    this.facing = 'right';
     this.instance = new Phaser.Game({
       type: Phaser.AUTO,
       parent: mount,
@@ -53,7 +54,7 @@ export class Playground {
     this.animKeys.forEach(k => { if (scene.anims.exists(k)) scene.anims.remove(k); });
     this.frameKeys.forEach(k => { if (scene.textures.exists(k)) scene.textures.remove(k); });
     this.animKeys=[]; this.frameKeys=[];
-    const { image, width, height, columns, animations } = data;
+    const { image, width, height, columns, animations, sourceFacing } = data;
     // Each frame becomes its own Phaser texture. No assumptions about sheet row count.
     const sheet = document.createElement('canvas');
     sheet.width=width; sheet.height=height;
@@ -75,8 +76,12 @@ export class Playground {
     this.player=scene.add.sprite(savedX,savedY,this.frameKeys[animations.idle.start])
       .setScale(Math.min(4,96/Math.max(width,height)));
     this.player.setDepth(2);
+    // The sheet may be originally drawn facing left OR right.
+    // Reset to the artist's original orientation on every apply.
+    this.facing=sourceFacing;
+    this.player.setFlipX(false);
     this.x=savedX; this.y=savedY; this.playAnimation('idle');
-    this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y));
+    this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y),this.facing);
   }
   cloneCanvas(source) {
     const c=document.createElement('canvas');c.width=source.width;c.height=source.height;
@@ -102,13 +107,16 @@ export class Playground {
       const speed=140*Math.min(dt,50)/1000;
       this.x=Math.max(28,Math.min(GAME_WIDTH-28,this.x+dx/length*speed));
       this.y=Math.max(28,Math.min(GAME_HEIGHT-62,this.y+dy/length*speed));
-      if(dx) this.player.setFlipX(dx<0);
+      if(dx) {
+        this.facing=dx<0?'left':'right';
+        this.player.setFlipX(this.facing!==this.frameData.sourceFacing);
+      }
       this.player.setPosition(this.x,this.y);
       this.playAnimation('walk');
     } else this.playAnimation('idle');
-    if(this.lastState!==this.state || this.lastX!==Math.round(this.x) || this.lastY!==Math.round(this.y)) {
-      this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y));
-      this.lastState=this.state;this.lastX=Math.round(this.x);this.lastY=Math.round(this.y);
+    if(this.lastState!==this.state || this.lastX!==Math.round(this.x) || this.lastY!==Math.round(this.y) || this.lastFacing!==this.facing) {
+      this.onUpdate?.(this.state,Math.round(this.x),Math.round(this.y),this.facing);
+      this.lastState=this.state;this.lastX=Math.round(this.x);this.lastY=Math.round(this.y);this.lastFacing=this.facing;
     }
   }
 }
