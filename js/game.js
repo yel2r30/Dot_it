@@ -58,36 +58,35 @@ export class Playground {
     this.animKeys.forEach(k => { if (scene.anims.exists(k)) scene.anims.remove(k); });
     this.frameKeys.forEach(k => { if (scene.textures.exists(k)) scene.textures.remove(k); });
     this.animKeys=[]; this.frameKeys=[];
-    const { image, width, height, columns, animations, sourceFacing } = data;
+    const { animations, sourceFacing } = data;
+    const scale = Math.min(4,96/Math.max(data.width,data.height));
     this.oneShot = null;
     this.idleElapsedMs = 0;
     this.nextSpecialMs = data.specialDelayMs ?? 30000;
     this.moving = false;
-    // Each frame becomes its own Phaser texture. No assumptions about sheet row count.
-    const sheet = document.createElement('canvas');
-    sheet.width=width; sheet.height=height;
-    const ctx=sheet.getContext('2d',{willReadFrequently:true});
-    for (let i=0;i<Math.floor(image.width/width)*Math.floor(image.height/height);i++) {
-      ctx.clearRect(0,0,width,height);
-      ctx.drawImage(image,(i%columns)*width,Math.floor(i/columns)*height,width,height,0,0,width,height);
-      const key='dotit-frame-'+i;
-      scene.textures.addCanvas(key, this.cloneCanvas(sheet));
-      this.frameKeys.push(key);
-    }
-    for(const [kind, info] of Object.entries(animations)) {
+    for (const [kind, info] of Object.entries(animations)) {
       const key='dotit-'+kind;
-      // Phaser adds per-frame durations to the animation's base duration.
-      // A 1 ms total duration makes user-entered frame times effectively exact.
-      const frames=Array.from({length:info.count},(_,i)=>info.perFrame
-        ? {key:this.frameKeys[info.start+i],duration:info.durations[i]}
-        : {key:this.frameKeys[info.start+i]});
+      const {image,width,height,columns}=info.image ? info : data;
+      const sheet=document.createElement('canvas');
+      sheet.width=width;
+      sheet.height=height;
+      const ctx=sheet.getContext('2d');
+      const frames=Array.from({length:info.count},(_,i)=>{
+        const index=info.start+i;
+        const frameKey=key+'-frame-'+index;
+        ctx.clearRect(0,0,width,height);
+        ctx.drawImage(image,(index%columns)*width,Math.floor(index/columns)*height,width,height,0,0,width,height);
+        scene.textures.addCanvas(frameKey,this.cloneCanvas(sheet));
+        this.frameKeys.push(frameKey);
+        return info.perFrame ? {key:frameKey,duration:info.durations[i]} : {key:frameKey};
+      });
       const timeConfig=info.perFrame?{duration:1}:{frameRate:info.fps};
       scene.anims.create({key,frames,...timeConfig,repeat:(kind==='attack'||kind==='special')?0:-1});
       this.animKeys.push(key);
     }
     const savedX=this.x ?? GAME_WIDTH/2, savedY=this.y ?? GAME_HEIGHT/2;
-    this.player=scene.add.sprite(savedX,savedY,this.frameKeys[animations.idle.start])
-      .setScale(Math.min(4,96/Math.max(width,height)));
+    this.player=scene.add.sprite(savedX,savedY,'dotit-idle-frame-'+animations.idle.start)
+      .setScale(scale);
     this.player.setDepth(2);
     // One-shot animations return to movement/idle only when their final frame completes.
     this.player.on(Phaser.Animations.Events.ANIMATION_COMPLETE,(animation)=>{
@@ -115,9 +114,19 @@ export class Playground {
   setFacing(direction) {
     if (!['left','right'].includes(direction)) return;
     this.facing = direction;
-    if (this.player && this.frameData) {
-      this.player.setFlipX(direction !== this.frameData.sourceFacing);
-    }
+    this.positionSprite();
+  }
+  positionSprite() {
+    if (!this.player || !this.frameData) return;
+    const data=this.frameData;
+    const action=data.animations[this.animationType];
+    const frame=action?.image ? action : data;
+    const flipped=this.facing!==data.sourceFacing;
+    const offsetX=(frame.width/2-(frame.anchorX ?? frame.width/2))*this.player.scaleX;
+    const offsetY=((data.anchorY ?? data.height)-data.height/2+
+      frame.height/2-(frame.anchorY ?? frame.height))*this.player.scaleY;
+    this.player.setFlipX(flipped);
+    this.player.setPosition(this.x+(flipped?-offsetX:offsetX),this.y+offsetY);
   }
   notifyState() {
     if (!this.player) return;
@@ -135,7 +144,9 @@ export class Playground {
     const label=type==='special'?'SPECIAL IDLE':type.toUpperCase();
     if (this.state === label && this.player.anims.isPlaying) return;
     this.state=label;
+    this.animationType=type;
     this.player.play('dotit-'+type,true);
+    this.positionSprite();
   }
   startOneShot(type) {
     if(!this.frameData?.animations?.[type]||!this.player) return false;
@@ -175,7 +186,6 @@ export class Playground {
       this.x=Math.max(28,Math.min(GAME_WIDTH-28,this.x+dx/length*speed));
       this.y=Math.max(28,Math.min(GAME_HEIGHT-62,this.y+dy/length*speed));
       if(dx)this.setFacing(dx<0?'left':'right');
-      this.player.setPosition(this.x,this.y);
     }
     // Input cancels special idle and restarts its inactivity countdown.
     if(moving||attackPressed) this.resetInactivity();
@@ -190,7 +200,7 @@ export class Playground {
       }else this.playAnimation(moving?'walk':'idle');
     }
     // During ATTACK, movement still changes position/facing but not the one-shot animation.
-    this.player.setFlipX(this.facing!==this.frameData.sourceFacing);
+    this.positionSprite();
     if(this.lastState!==this.state||this.lastX!==Math.round(this.x)||
         this.lastY!==Math.round(this.y)||this.lastFacing!==this.facing||this.lastFlip!==this.player.flipX){
       this.notifyState();
