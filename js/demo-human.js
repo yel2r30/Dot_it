@@ -1,8 +1,8 @@
-// Right-facing human poses on a 6 × 6 grid of 48 px cells.
+// Three-quarter-view human poses on a 6 × 6 grid of 48 px cells.
 const rows = [
   // Each pose defines body lift, lean, feet, hands, and an optional effect.
   [[0,0,-4,4,-5,6],[0,0,-4,4,-5,6],[-1,0,-4,4,-5,6],[-1,0,-4,4,-5,6],[0,0,-4,4,-5,6],[0,0,-4,4,-5,6]],
-  [[0,0,-4,4,-5,6],[0,0,-4,4,-5,9,'wave'],[0,0,-4,4,-5,13,'wave'],[0,0,-4,4,-5,9,'wave'],[0,0,-4,4,-5,13,'wave'],[0,0,-4,4,-5,6]],
+  [[0,0,-4,4,-5,6,'blink'],[0,0,-4,4,-5,6],[0,.04,-4,4,-5,6,'blink'],[0,.09,-4,4,-5,6,'nod'],[0,.09,-4,4,-5,6,'nod'],[0,.02,-4,4,-5,6,'blink']],
   [[0,.12,-9,9,7,-7],[-1,.12,-5,5,4,-4],[-2,.12,-2,2,0,1],[0,.12,9,-9,-7,7],[-1,.12,5,-5,-4,4],[-2,.12,2,-2,0,1]],
   [[0,-.13,-5,6,-6,-6],[0,-.2,-6,7,-6,-10],[0,.16,-6,8,-4,15,'strike'],[0,.27,-6,8,-4,17,'strike'],[0,.15,-6,7,-5,13],[0,0,-4,4,-5,6]],
   [[0,-.27,-6,5,-10,10,'impact'],[0,-.36,-7,6,-12,11,'impact'],[1,-.18,-6,5,-8,8],[0,0,-4,4,-5,6]],
@@ -31,7 +31,7 @@ export function createHumanDemo() {
       const fallShift = row===5 ? Math.round(-lean*9) : 0;
       ctx.translate(column*size+24+fallShift,row*size+41+lift);
       ctx.rotate(lean);
-      const handY = effect==='wave' ? -28 : effect==='strike' ? -22 : -13;
+      const handY = effect==='strike' ? -22 : -13;
       segment(-3,-12,backFoot,-2,'#253750',4);
       segment(backFoot-1,-2,backFoot+3,-2,'#18263b',3);
       segment(2,-12,frontFoot,-2,'#405877',4);
@@ -42,11 +42,22 @@ export function createHumanDemo() {
       segment(3,-22,frontHand,handY,'#52cfb4',4);
       ctx.fillStyle='#eab287';
       ctx.fillRect(frontHand-1,handY-1,3,3);
-      ctx.fillRect(-4,-35,10,10);
+      const nod = effect==='nod' ? 3 : effect==='blink' ? 1 : 0;
+      ctx.save();
+      ctx.translate(nod,nod);
+      ctx.fillRect(-5,-35,12,10);
+      ctx.fillStyle='#bc826a';
+      ctx.fillRect(-6,-31,2,4);
+      ctx.fillRect(6,-30,2,3);
       ctx.fillStyle='#352a32';
-      ctx.fillRect(-5,-36,11,4);
-      ctx.fillRect(-5,-33,3,6);
-      ctx.fillRect(3,-31,2,2);
+      ctx.fillRect(-6,-36,12,4);
+      ctx.fillRect(-6,-33,3,5);
+      const eyeHeight = nod ? 1 : 2;
+      ctx.fillRect(0,-31,2,eyeHeight);
+      ctx.fillRect(5,-31,1,eyeHeight);
+      ctx.fillStyle='#a76555';
+      ctx.fillRect(3,-27,2,1);
+      ctx.restore();
       if (effect==='strike') {
         segment(10,-26,16,-31,'#ffe28b',2);
         segment(12,-17,15,-20,'#fff3be',2);
