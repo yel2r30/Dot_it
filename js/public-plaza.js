@@ -22,7 +22,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
     clearInterval(current.tick);
     clearTimeout(current.timeout);
     for (const unsubscribe of current.subscriptions) unsubscribe();
-    if (current.demoInstalled) game.leaveTestRoom();
+    if (current.demoInstalled) game.leavePublicPlaza();
     leave.disabled=true;
     status.textContent=message;
     try {
@@ -80,7 +80,7 @@ export function setupPublicPlaza(game, createDemo, ranges) {
       const guest=user.isAnonymous;
       const demo=await createDemo();
       if (session!==current) return;
-      game.enterTestRoom(demo,ranges);
+      game.enterPublicPlaza(demo,ranges);
       current.demoInstalled=true;
       game.setPlazaNickname(nickname);
       current.subscriptions.push(auth.onAuthStateChanged(account,next=>{
